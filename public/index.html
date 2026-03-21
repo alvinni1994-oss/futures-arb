@@ -643,10 +643,72 @@ async function testEmail(){
   }
 }
 
-async function sendServerChan(title,body){
+function buildServerChanMd(title, body){
+  const D = window._lastData;
+  const now = new Date().toLocaleString("zh-CN",{hour12:false});
+  let md = `## ${title}\n\n`;
+  md += `> 📅 ${now}\n\n`;
+  md += `---\n\n`;
+  // 核心价格
+  if(D){
+    const diff = D.diff_stats.cur;
+    const z    = D.diff_stats.z.toFixed(2);
+    const pct  = D.diff_stats.pct.toFixed(1);
+    const br   = D.ca_last;
+    const nr   = D.cb_last;
+    const ratio= D.ratio_stats.cur.toFixed(4);
+    const mean = D.diff_stats.mean.toFixed(0);
+    const std  = D.diff_stats.std.toFixed(0);
+    const p5   = D.diff_stats.p5;
+    const p95  = D.diff_stats.p95;
+
+    md += `### 💹 实时行情\n`;
+    md += `| 品种 | 最新价 | 合约 |\n|---|---|---|\n`;
+    md += `| BR（丁二烯橡胶） | **${br}** 元/吨 | ${D.rt_sym_a||"BR0"} |\n`;
+    md += `| NR（20号胶） | **${nr}** 元/吨 | ${D.rt_sym_b||"NR0"} |\n\n`;
+
+    md += `### 📊 价差统计\n`;
+    md += `| 指标 | 数值 |\n|---|---|\n`;
+    md += `| 当前价差 | **${diff > 0 ? "+":""}${diff}** 元/吨 |\n`;
+    md += `| 历史均值 | ${mean} 元/吨 |\n`;
+    md += `| 标准差 | ${std} |\n`;
+    md += `| Z-Score | **${z}σ** |\n`;
+    md += `| 历史分位 | **P${pct}%** |\n`;
+    md += `| 历史区间 | P5=${p5} ~ P95=${p95} |\n`;
+    md += `| BR/NR比值 | ${ratio} |\n\n`;
+
+    md += `### 🎯 操作建议\n`;
+    md += `${body}\n\n`;
+
+    // 历史相关性
+    if(D.corr){
+      md += `### 📈 历史相关性\n`;
+      md += `| 周期 | 相关系数 |\n|---|---|\n`;
+      for(const [k,v] of Object.entries(D.corr)){
+        md += `| ${k} | ${v} |\n`;
+      }
+      md += `\n`;
+    }
+  } else {
+    md += body + `\n\n`;
+  }
+  md += `---\n`;
+  md += `🔗 [查看完整图表](https://futures-arb.onrender.com)\n`;
+  return md;
+}
+
+async function sendServerChan(title, body){
   const key=document.getElementById("alert-webhook").value.trim()||AC.webhookKey;
   if(!key) return;
-  try{await fetch("https://sctapi.ftqq.com/"+key+".send?title="+encodeURIComponent("🔴 BR/NR: "+title)+"&desp="+encodeURIComponent(body),{method:"GET",mode:"no-cors"})}catch(e){}
+  const desp = buildServerChanMd(title, body);
+  try{
+    await fetch("https://sctapi.ftqq.com/"+key+".send",{
+      method:"POST",
+      mode:"no-cors",
+      headers:{"Content-Type":"application/x-www-form-urlencoded"},
+      body:"title="+encodeURIComponent("🔴 BR/NR: "+title)+"&desp="+encodeURIComponent(desp)
+    });
+  }catch(e){}
 }
 
 async function testWebhook(){
@@ -737,6 +799,7 @@ async function loadPair(silent=false){
     if(!r.ok) throw new Error("HTTP "+r.status);
     D=await r.json();
     if(D.error) throw new Error(D.error);
+    window._lastData = D;
     render();
     document.getElementById("lupd").textContent=new Date().toLocaleTimeString("zh-CN");
     document.getElementById("rt-dot").style.background=D.realtime?"#16a34a":"#ca8a04";
