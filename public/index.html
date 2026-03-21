@@ -101,6 +101,42 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 .sk{color:var(--t3)}.sv{color:var(--t);font-weight:600}
 .note-tip{font-size:.68rem;color:var(--t3);margin-top:6px;line-height:1.5;padding:6px 8px;background:#fff;border-radius:4px;border:1px solid var(--bd)}
 
+/* 策略公式三列 */
+.strat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:768px){.strat-grid{grid-template-columns:1fr}}
+.strat-block h4{font-size:.67rem;color:var(--orange);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;font-weight:700}
+
+/* 阈值面板 */
+.thresh-sec{font-size:.67rem;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 6px;padding-top:8px;border-top:1px solid var(--bd)}
+.thresh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:500px){.thresh-grid{grid-template-columns:1fr}}
+.thresh-item label{font-size:.65rem;color:var(--t2);display:block;margin-bottom:3px;font-weight:600}
+.thresh-input{background:#fff;border:1px solid var(--bd2);color:var(--t);padding:5px 8px;border-radius:5px;font-size:.8rem;width:90px;text-align:center;font-weight:600}
+.thresh-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-bg)}
+.thresh-hint{font-size:.62rem;color:var(--t3);margin-top:2px}
+.save-btn{padding:6px 14px;background:var(--blue);border:none;border-radius:6px;color:#fff;font-size:.75rem;cursor:pointer;font-weight:600;transition:all .2s}
+.save-btn.saving{background:var(--yellow);color:var(--t)}
+.save-btn.saved{background:var(--green);color:#fff}
+
+/* 两列布局 */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:768px){.two-col{grid-template-columns:1fr}}
+
+/* 提醒设置 */
+.alert-item{margin-bottom:14px}
+.alert-item label{font-size:.72rem;color:var(--t);display:block;margin-bottom:5px;font-weight:700}
+.alert-input{background:#fff;border:1px solid var(--bd2);color:var(--t);padding:6px 10px;border-radius:6px;font-size:.78rem;width:100%;transition:border .15s}
+.alert-hint{font-size:.65rem;color:var(--t3);margin-top:4px;line-height:1.4}
+.freq-select{background:#fff;border:1px solid var(--bd2);color:var(--t2);padding:5px 10px;border-radius:6px;font-size:.78rem;width:100%;cursor:pointer}
+.status-line{font-size:.7rem;color:var(--t3);margin-top:5px;min-height:18px}
+.toggle-row{display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0}
+.toggle-sw{width:36px;height:20px;background:var(--bd2);border-radius:10px;position:relative;transition:background .2s;flex-shrink:0}
+.toggle-sw::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-sw.on{background:var(--green)}
+.toggle-sw.on::after{left:18px}
+.test-btn{margin-top:6px;padding:5px 12px;background:#fff;border:1px solid var(--bd2);border-radius:6px;font-size:.72rem;cursor:pointer;color:var(--t2)}
+.test-btn:hover{border-color:var(--blue);color:var(--blue)}
+
 /* 图表 */
 #mc{width:100%;height:260px}#pc{width:100%;height:180px}#hc{width:100%;height:150px}
 
@@ -220,10 +256,131 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
           <span id="strat-arrow">▲</span>
         </div>
         <div class="strat-body open" id="strat-body">
-          <div style="margin-top:8px">
-            <div class="formula main" id="formula-main">—</div>
-            <div class="formula live" id="formula-live">实时代入: —</div>
-            <div class="note-tip" id="formula-note" style="color:var(--t2)">—</div>
+          <div class="strat-grid">
+            <div class="strat-block">
+              <h4>📐 核心公式</h4>
+              <div class="formula main" id="formula-main">—</div>
+              <div class="formula live" id="formula-live">实时代入: —</div>
+              <div class="note-tip" id="formula-note" style="color:var(--t2)">—</div>
+            </div>
+            <div class="strat-block">
+              <h4>📌 下单逻辑</h4>
+              <div class="formula" id="formula-trade-hi">—</div>
+              <div class="formula" id="formula-trade-lo">—</div>
+              <div class="formula" id="formula-tp-sl">—</div>
+              <div class="note-tip" style="color:var(--red);font-weight:600" id="formula-pair-note">—</div>
+            </div>
+            <div class="strat-block">
+              <h4>⚠️ 风险提示（必读）</h4>
+              <div class="sr" style="background:var(--orange-bg);padding:4px 6px;border-radius:4px">
+                <span class="sk" style="color:var(--orange);font-weight:700">配对说明</span>
+                <span class="sv" style="color:var(--orange)" id="risk-pair">—</span>
+              </div>
+              <div class="sr"><span class="sk">换月风险</span><span class="sv">主力换月价差可能跳变</span></div>
+              <div class="sr"><span class="sk">价差波动</span><span class="sv" id="risk-std">—</span></div>
+              <div class="sr"><span class="sk">数据延迟</span><span class="sv">60秒轮询，非逐笔</span></div>
+              <div class="sr"><span class="sk">建议仓位</span><span class="sv">单策略 ≤ 总仓15%</span></div>
+              <div class="note-tip" style="color:var(--red);font-weight:600;background:var(--red-bg);border-color:var(--red-bd)">
+                本工具仅供研究参考，不构成投资建议，盈亏自负！
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 自定义阈值 + 提醒设置 两栏 -->
+      <div class="two-col">
+        <!-- 阈值设置 -->
+        <div class="panel">
+          <div class="panel-h" style="cursor:pointer" onclick="togglePanel('thresh-body','thresh-arrow')">
+            <span><span class="ph-icon">⚙️</span>自定义阈值</span>
+            <span id="thresh-arrow" style="color:var(--t3);font-size:.8rem">▼</span>
+          </div>
+          <div id="thresh-body" style="display:none">
+            <div class="thresh-sec">▶ 价差阈值</div>
+            <div class="thresh-grid">
+              <div class="thresh-item">
+                <label>开仓关注上界</label>
+                <input type="number" class="thresh-input" id="t-diff-open-hi" step="50">
+                <div class="thresh-hint">差值 &gt; 此值 → 弱信号偏高</div>
+              </div>
+              <div class="thresh-item">
+                <label>强信号上界</label>
+                <input type="number" class="thresh-input" id="t-diff-strong-hi" step="50">
+                <div class="thresh-hint">差值 &gt; 此值 → 强信号</div>
+              </div>
+              <div class="thresh-item">
+                <label>开仓关注下界</label>
+                <input type="number" class="thresh-input" id="t-diff-open-lo" step="50">
+                <div class="thresh-hint">差值 &lt; 此值 → 弱信号偏低</div>
+              </div>
+              <div class="thresh-item">
+                <label>强信号下界</label>
+                <input type="number" class="thresh-input" id="t-diff-strong-lo" step="50">
+                <div class="thresh-hint">差值 &lt; 此值 → 强信号</div>
+              </div>
+              <div class="thresh-item">
+                <label>止盈区间 ±</label>
+                <input type="number" class="thresh-input" id="t-diff-tp" step="50">
+                <div class="thresh-hint">差值回归均值±此值 → 止盈</div>
+              </div>
+              <div class="thresh-item">
+                <label>止损线 ±</label>
+                <input type="number" class="thresh-input" id="t-diff-sl" step="50">
+                <div class="thresh-hint">差值超过±此值 → 止损</div>
+              </div>
+            </div>
+            <div style="text-align:right;margin-top:12px;padding-top:10px;border-top:1px solid var(--bd)">
+              <button class="save-btn" onclick="saveThresh()">💾 保存应用</button>
+              <span id="save-status" style="font-size:.72rem;margin-left:8px;color:var(--t3)"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 提醒设置 -->
+        <div class="panel">
+          <div class="panel-h" style="cursor:pointer" onclick="togglePanel('alert-body','alert-arrow')">
+            <span><span class="ph-icon">🔔</span>提醒设置</span>
+            <span id="alert-arrow" style="color:var(--t3);font-size:.8rem">▼</span>
+          </div>
+          <div id="alert-body" style="display:none">
+            <div style="background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:.72rem;color:var(--t2);line-height:1.7">
+              <div style="font-weight:700;color:var(--blue);margin-bottom:5px">📋 提醒触发规则</div>
+              <div>✅ 状态变化才提醒（不重复推送）</div>
+              <div>✅ 强信号每日最多2次，弱信号每日最多1次</div>
+              <div>✅ 同级别最短4小时才补发</div>
+              <div id="alert-freq-status" style="margin-top:5px;color:var(--orange);font-weight:600"></div>
+            </div>
+            <div class="alert-item">
+              <label>⏱ 自动刷新频率</label>
+              <select class="freq-select" id="alert-freq" onchange="setAlertTimer()">
+                <option value="0">关闭</option>
+                <option value="300000">每5分钟</option>
+                <option value="600000" selected>每10分钟</option>
+                <option value="1800000">每30分钟</option>
+                <option value="3600000">每1小时</option>
+              </select>
+              <div class="status-line" id="timer-status">未启动</div>
+            </div>
+            <div class="alert-item">
+              <label>🔔 浏览器桌面通知</label>
+              <div class="toggle-row" onclick="requestNotifPerm()">
+                <div class="toggle-sw" id="sw-notif"></div>
+                <span id="notif-label">点击授权桌面通知</span>
+              </div>
+              <div class="status-line" id="notif-status">未授权</div>
+            </div>
+            <div class="alert-item">
+              <label>📱 微信推送（Server酱）</label>
+              <input type="text" class="alert-input" id="alert-webhook" placeholder="SCT开头的SendKey">
+              <div class="alert-hint">在 <a href="https://sct.ftqq.com" target="_blank" style="color:var(--blue)">sct.ftqq.com</a> 免费注册获取 SendKey</div>
+              <div class="toggle-row" onclick="toggleWebhook()">
+                <div class="toggle-sw" id="sw-webhook"></div>
+                <span>启用微信推送</span>
+              </div>
+              <button class="test-btn" onclick="testWebhook()">📨 发测试消息</button>
+              <div class="status-line" id="webhook-status">未启用</div>
+            </div>
           </div>
         </div>
       </div>
@@ -272,10 +429,9 @@ const API=(location.hostname==='localhost'||location.hostname==='127.0.0.1')
 
 // ===== 策略元数据 =====
 const CATEGORY_META = {
-  rubber:        { label: "🌿 橡胶套利",    strategies: ["br_nr"] },
   equity_index:  { label: "📈 股指期货",    strategies: ["im_ic"] },
   processing:    { label: "🏭 加工费套利",  strategies: ["ta_px", "pr_bottle", "pr_pf"] },
-  cross_product: { label: "🔄 跨品种套利", strategies: ["l_pp", "rm_oi", "m_rm", "rm_c", "lu_fu"] },
+  cross_product: { label: "🔄 跨品种套利", strategies: ["br_nr", "l_pp", "rm_oi", "m_rm", "rm_c", "lu_fu"] },
 };
 
 const STRATEGY_NAME = {
@@ -539,14 +695,32 @@ function renderPctBar(d) {
   if (yrsEl) yrsEl.textContent = yrs;
 }
 
+// ── 交易动作映射 ──
+const TRADE_ACTIONS = {
+  br_nr:     { hi: "卖2手BR + 买1手NR", lo: "买2手BR + 卖1手NR" },
+  im_ic:     { hi: "卖1手IM + 买1手IC", lo: "买1手IM + 卖1手IC" },
+  ta_px:     { hi: "空2手PX + 多3手TA", lo: "多2手PX + 空3手TA" },
+  pr_bottle: { hi: "空2手PR + 多5手TA + 多1手EG", lo: "多2手PR + 空5手TA + 空1手EG" },
+  pr_pf:     { hi: "空1手PR + 多3手PF（加工费PR>PF）", lo: "多1手PR + 空3手PF（加工费PF>PR）" },
+  l_pp:      { hi: "卖1手L + 买1手PP", lo: "买1手L + 卖1手PP" },
+  rm_oi:     { hi: "空4手RM + 多1手OI", lo: "多4手RM + 空1手OI" },
+  m_rm:      { hi: "卖1手M + 买1手RM", lo: "买1手M + 卖1手RM" },
+  rm_c:      { hi: "卖1手RM + 买1手C", lo: "买1手RM + 卖1手C" },
+  lu_fu:     { hi: "卖1手LU + 买1手FU", lo: "买1手LU + 卖1手FU" },
+};
+function getTradeActionHi(id){ return TRADE_ACTIONS[id]?.hi || "—"; }
+function getTradeActionLo(id){ return TRADE_ACTIONS[id]?.lo || "—"; }
+
 function renderFormula(d) {
+  const strat = STRATEGY_CONFIG[currentId] || {};
   const formula = d.formula || "—";
   const prices = d.leg_prices || {};
   const legs = d.legs || [];
-  const unit = d.unit || "";
+  const unit = d.unit || "元/吨";
 
-  document.getElementById("formula-main").textContent = `公式: ${formula}`;
-  document.getElementById("formula-note").textContent = d.note || "";
+  // 核心公式
+  const fmainEl = document.getElementById("formula-main");
+  if(fmainEl) fmainEl.textContent = `【主】价差 = ${formula}  (${unit})`;
 
   // 实时代入
   let liveStr = formula;
@@ -554,12 +728,27 @@ function renderFormula(d) {
     const p = prices[sym];
     if (p != null) liveStr = liveStr.replace(new RegExp("\\b" + sym + "\\b", "g"), p.toFixed(1));
   });
-  try {
-    const val = eval(liveStr.replace(/[A-Z]+/g, "0")); // safe fallback, actual substitution done above
-    document.getElementById("formula-live").textContent = `实时代入: ${liveStr} = ${d.stats.cur.toFixed(2)} ${unit}`;
-  } catch(e) {
-    document.getElementById("formula-live").textContent = `实时代入: ${liveStr} ≈ ${d.stats.cur.toFixed(2)} ${unit}`;
-  }
+  const fliveEl = document.getElementById("formula-live");
+  if(fliveEl) fliveEl.textContent = `实时代入: ${liveStr} ≈ ${d.stats.cur.toFixed(2)} ${unit}`;
+
+  const fnoteEl = document.getElementById("formula-note");
+  if(fnoteEl) fnoteEl.textContent = d.note || "";
+
+  // 下单逻辑
+  const fhiEl = document.getElementById("formula-trade-hi");
+  if(fhiEl) fhiEl.innerHTML = `价差 &gt; +${strat.openHi}（偏贵）<br>→ ${getTradeActionHi(currentId)}`;
+  const floEl = document.getElementById("formula-trade-lo");
+  if(floEl) floEl.innerHTML = `价差 &lt; ${strat.openLo}（偏低）<br>→ ${getTradeActionLo(currentId)}`;
+  const ftpEl = document.getElementById("formula-tp-sl");
+  if(ftpEl) ftpEl.textContent = `止盈：价差回归均值±${strat.tp}  止损：价差超过±${strat.sl}`;
+  const fpairEl = document.getElementById("formula-pair-note");
+  if(fpairEl) fpairEl.textContent = `⚠️ ${d.note || ""}`;
+
+  // 风险提示
+  const riskPair = document.getElementById("risk-pair");
+  if(riskPair) riskPair.textContent = d.note || "—";
+  const riskStd = document.getElementById("risk-std");
+  if(riskStd) riskStd.textContent = `1σ≈${d.stats.std ? Math.round(d.stats.std) : "—"}${unit}`;
 }
 
 function renderCharts(d) {
@@ -708,6 +897,148 @@ async function fetchWithTimeout(url, timeoutMs = 65000) {
 function toggleEl(bodyId, arrowId) {
   const b = document.getElementById(bodyId), a = document.getElementById(arrowId);
   b.classList.toggle("open"); a.textContent = b.classList.contains("open") ? "▲" : "▼";
+}
+
+function togglePanel(bodyId, arrowId) {
+  const body = document.getElementById(bodyId);
+  const arrow = document.getElementById(arrowId);
+  if(!body) return;
+  const isOpen = body.style.display !== "none";
+  body.style.display = isOpen ? "none" : "block";
+  if(arrow) arrow.textContent = isOpen ? "▼" : "▲";
+}
+
+// ── 阈值面板 ──
+function syncThreshInputs() {
+  const T = STRATEGY_CONFIG[currentId] || {};
+  const setVal = (id, val) => { const el=document.getElementById(id); if(el&&val!=null) el.value=val; };
+  setVal("t-diff-open-hi",  T.openHi);
+  setVal("t-diff-strong-hi", T.strongHi);
+  setVal("t-diff-open-lo",  T.openLo);
+  setVal("t-diff-strong-lo", T.strongLo);
+  setVal("t-diff-tp",       T.tp);
+  setVal("t-diff-sl",       T.sl);
+}
+
+async function saveThresh() {
+  const T = STRATEGY_CONFIG[currentId] = STRATEGY_CONFIG[currentId] || {};
+  const getVal = id => { const el=document.getElementById(id); return el ? +el.value : null; };
+  T.openHi   = getVal("t-diff-open-hi");
+  T.strongHi = getVal("t-diff-strong-hi");
+  T.openLo   = getVal("t-diff-open-lo");
+  T.strongLo = getVal("t-diff-strong-lo");
+  T.tp       = getVal("t-diff-tp");
+  T.sl       = getVal("t-diff-sl");
+
+  const btn = document.querySelector(".save-btn");
+  const statusEl = document.getElementById("save-status");
+  if(btn) { btn.className="save-btn saving"; btn.textContent="⏳ 保存中..."; }
+
+  try {
+    const resp = await fetch(`${API}/api/settings`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ key: `thresh_${currentId}`, data: T })
+    });
+    const ok = resp.ok;
+    if(btn) { btn.className="save-btn saved"; btn.textContent=ok?"✅ 已保存":"✅ 已保存（本地）"; }
+    if(statusEl) statusEl.textContent = ok ? "已同步到服务器" : "已保存本地";
+  } catch(e) {
+    if(btn) { btn.className="save-btn saved"; btn.textContent="✅ 已保存（本地）"; }
+    if(statusEl) statusEl.textContent = "已保存本地";
+  }
+  setTimeout(()=>{if(btn){btn.className="save-btn";btn.textContent="💾 保存应用";}if(statusEl)statusEl.textContent="";},2500);
+}
+
+// ── 提醒设置：AC（Alert Config）全局状态 ──
+const AC = { webhook: false, webhookKey: "" };
+
+let alertTimer = null;
+function setAlertTimer(){
+  if(alertTimer) clearInterval(alertTimer);
+  const freqEl=document.getElementById("alert-freq");
+  const freq=freqEl ? (+freqEl.value||0) : 0;
+  const el=document.getElementById("timer-status");
+  if(!freq){if(el){el.textContent="已关闭自动刷新";el.style.color="";}return;}
+  if(el){el.textContent="✅ 每"+(freq/60000)+"分钟自动刷新";el.style.color="var(--green)";}
+  alertTimer=setInterval(()=>loadSpread(true),freq);
+}
+
+async function requestNotifPerm(){
+  const st=document.getElementById("notif-status");
+  const lb=document.getElementById("notif-label");
+  if(!("Notification" in window)){if(st)st.textContent="浏览器不支持通知";return;}
+  const perm=await Notification.requestPermission();
+  if(perm==="granted"){
+    if(st){st.textContent="✅ 已授权";st.style.color="var(--green)";}
+    if(lb) lb.textContent="已授权 ✅";
+    document.getElementById("sw-notif")?.classList.add("on");
+  } else {
+    if(st) st.textContent="❌ 已拒绝 - 在地址栏左侧解除屏蔽";
+  }
+}
+
+function updateNotifUI() {
+  if(!("Notification" in window)) return;
+  if(Notification.permission === "granted"){
+    const st=document.getElementById("notif-status");
+    const lb=document.getElementById("notif-label");
+    if(st){st.textContent="✅ 已授权";st.style.color="var(--green)";}
+    if(lb) lb.textContent="已授权 ✅";
+    document.getElementById("sw-notif")?.classList.add("on");
+  }
+}
+
+function toggleWebhook(){
+  AC.webhook=!AC.webhook;
+  document.getElementById("sw-webhook")?.classList.toggle("on",AC.webhook);
+  const s=document.getElementById("webhook-status");
+  if(s) s.textContent=AC.webhook?"✅ 已启用":"未启用";
+}
+
+async function testWebhook(){
+  const key=document.getElementById("alert-webhook")?.value.trim();
+  if(!key){alert("请先填入SendKey");return;}
+  const st=document.getElementById("webhook-status");
+  if(st){st.textContent="发送中...";st.style.color="";}
+  try{
+    const r=await fetch(`${API}/api/send-webhook`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key,title:"🧪期货套利测试",content:"推送功能正常！"})});
+    const d=await r.json();
+    if(st) st.textContent=d.ok?"✅ 已发送":"❌ 发送失败："+d.msg;
+  }catch(e){
+    if(st) st.textContent="❌ 网络错误";
+  }
+}
+
+// ── 加载 settings（阈值 + 通知配置）──
+async function loadSettings() {
+  try {
+    for(const id of Object.keys(STRATEGY_CONFIG)) {
+      const r = await fetch(`${API}/api/settings?key=thresh_${id}`);
+      if(r.ok) {
+        const saved = await r.json();
+        if(saved && typeof saved === 'object' && saved.openHi != null) {
+          Object.assign(STRATEGY_CONFIG[id], saved);
+        }
+      }
+    }
+    const r2 = await fetch(`${API}/api/settings?key=alert_config`);
+    if(r2.ok) {
+      const ac = await r2.json();
+      if(ac) Object.assign(AC, ac);
+    }
+  } catch(e) {}
+
+  syncThreshInputs();
+  setAlertTimer();
+  updateNotifUI();
+
+  const wh = document.getElementById("alert-webhook");
+  if(wh && AC.webhookKey) wh.value = AC.webhookKey;
+  if(AC.webhook) {
+    document.getElementById("sw-webhook")?.classList.add("on");
+    const s=document.getElementById("webhook-status");
+    if(s) s.textContent="✅ 已启用";
+  }
 }
 
 window.addEventListener("resize", () => {
