@@ -779,6 +779,27 @@ async function apiFetch(url) {
 }
 
 // ====================================================
+// 工具函数（缺失补全）
+// ====================================================
+function setStatus(type, text) {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  if (dot) { dot.className = 'status-dot'; if (type !== 'loading') dot.classList.add(type); }
+  if (txt) txt.textContent = text;
+}
+
+async function refreshAll() {
+  setStatus('loading', '正在刷新...');
+  await loadAllData();
+}
+
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(() => loadAllData(), 60000);
+  setStatus('online', `上次更新: ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`);
+}
+
+// ====================================================
 // 初始化
 // ====================================================
 async function init() {
@@ -810,7 +831,7 @@ function renderSections() {
   const main = document.getElementById('mainContent');
   main.innerHTML = '';
 
-  const cats = ['equity_index', 'processing', 'cross_product', 'calendar'];
+  const cats = ['rubber', 'equity_index', 'processing', 'cross_product', 'calendar'];
   cats.forEach(cat => {
     const meta = CATEGORY_META[cat];
     const sec = document.createElement('div');
@@ -887,25 +908,17 @@ function renderCalendarCardSkeleton(sym) {
 // 数据加载
 // ============================================================
 
-async function loadAllData(years) {
+async function loadAllData(years = 3) {
   try {
-    // 1. 加载策略列表
-    const res = await fetch('/api/strategies');
-    const strategies = await res.json();
-
-    // 2. 渲染骨架
-    renderSections(strategies);
-
-    // 3. 并发加载所有策略数据
+    setStatus('loading', '正在拉取数据...');
+    // 并发加载所有策略历史数据（strategies 已在 init 里全局赋值）
     await Promise.allSettled(strategies.map(s => loadStrategyData(s, years)));
-
-    // 4. 加载跨期价差
+    // 加载跨期价差
     await Promise.allSettled(CALENDAR_SYMBOLS.map(sym => loadCalendarData(sym, years)));
-
+    setStatus('online', `更新: ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`);
   } catch(e) {
     console.error('loadAllData error:', e);
-    document.getElementById('main-content').innerHTML =
-      `<div style="padding:40px;text-align:center;color:#ef4444">数据加载失败：${e.message}</div>`;
+    setStatus('error', `数据加载失败: ${e.message}`);
   }
 }
 
@@ -1065,43 +1078,7 @@ function updateCalendarCard(sym, data) {
 // 主入口
 // ============================================================
 
-document.addEventListener('DOMContentLoaded', () => {
-  const years = parseInt(document.getElementById('years-select')?.value || '3');
-  loadAllData(years);
-
-  // 年份切换
-  document.getElementById('years-select')?.addEventListener('change', e => {
-    loadAllData(parseInt(e.target.value));
-  });
-
-  // 刷新按钮
-  document.getElementById('refresh-btn')?.addEventListener('click', () => {
-    const years = parseInt(document.getElementById('years-select')?.value || '3');
-    loadAllData(years);
-  });
-
-  // Tab切换
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-      btn.classList.add('active');
-      const cat = btn.dataset.cat;
-      const sec = document.getElementById(`sec_${cat}`);
-      if (sec) sec.style.display = 'block';
-    });
-  });
-
-  // 默认显示第一个tab
-  const firstBtn = document.querySelector('.tab-btn');
-  if (firstBtn) firstBtn.click();
-
-  // 每分钟自动刷新
-  setInterval(() => {
-    const y = parseInt(document.getElementById('years-select')?.value || '3');
-    loadAllData(y);
-  }, 60000);
-});
+window.addEventListener('load', init);
 </script>
 </body>
 </html>
