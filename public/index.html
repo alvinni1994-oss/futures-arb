@@ -105,6 +105,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 /* 阈值设置 */
 .thresh-sec{font-size:.67rem;color:var(--orange);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 6px;padding-top:8px;border-top:1px solid var(--bd)}
 .thresh-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:500px){.thresh-grid{grid-template-columns:1fr}}
 .thresh-item label{font-size:.65rem;color:var(--t2);display:block;margin-bottom:3px;font-weight:600}
 .thresh-input{background:#fff;border:1px solid var(--bd2);color:var(--t);padding:5px 8px;border-radius:5px;font-size:.8rem;width:90px;text-align:center;font-weight:600}
 .thresh-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-bg)}
@@ -1009,9 +1010,10 @@ function render(){
   if(!pc_c) pc_c=echarts.init(document.getElementById("pc"));
   pc_c.setOption({
     backgroundColor:"#fff",
-    grid:{left:isMobile?52:56, right:isMobile?52:65, top:isMobile?28:24, bottom:28},
+    grid:{left:isMobile?52:56, right:isMobile?52:65, top:isMobile?28:24, bottom:isMobile?36:28},
     tooltip:{trigger:"axis",backgroundColor:"#fff",borderColor:"#dde1e7",textStyle:{color:"#1a1d23",fontSize:11}},
-    legend:{top:3,right:isMobile?4:5,textStyle:{color:"#4a5568",fontSize:9},itemWidth:12,itemHeight:7},
+    legend:{top:isMobile?"bottom":3, right:isMobile?"center":5, bottom:isMobile?4:"auto",
+      orient:"horizontal", textStyle:{color:"#4a5568",fontSize:9},itemWidth:12,itemHeight:7},
     xAxis:{type:"category",data:d.dates,boundaryGap:false,
       axisLabel:{color:"#8a93a2",fontSize:9,interval:Math.floor(d.dates.length/(isMobile?4:6)),
         formatter:v=>v?v.slice(0,7):""
