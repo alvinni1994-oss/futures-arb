@@ -9,49 +9,34 @@
   <style>
     /* ==============================
        CSS 变量 & 主题
+       配色原则：正文全灰，只用3种色
+       🔴 红 = 偏高/卖出  🟢 绿 = 偏低/买入  🟡 橙 = 警示/中性
     ============================== */
     :root {
-      --bg: #f5f7fa;
+      --bg: #f4f6f8;
       --card-bg: #ffffff;
-      --border: #e2e8f0;
-      --text-primary: #1a202c;
-      --text-secondary: #718096;
-      --text-muted: #a0aec0;
-      --accent: #4f6ef7;
-      --accent-light: #ebedfd;
-      --red: #e53e3e;
-      --red-light: #fff5f5;
-      --green: #38a169;
-      --green-light: #f0fff4;
-      --yellow: #d69e2e;
-      --yellow-light: #fffff0;
-      --gray: #718096;
-      --gray-light: #f7fafc;
-      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+      --border: #e4e8ee;
+      --text-primary: #1c2333;
+      --text-secondary: #6b7a94;
+      --text-muted: #b0bac9;
+      --accent: #3b6cf4;
+      --accent-light: #edf1fe;
+
+      /* 只有三种强调色 */
+      --c-sell: #d32f2f;        /* 做空/偏高 —— 深红 */
+      --c-sell-bg: #fef2f2;
+      --c-sell-bd: #fca5a5;
+      --c-buy: #1a7f4b;         /* 做多/偏低 —— 深绿 */
+      --c-buy-bg: #f0fdf4;
+      --c-buy-bd: #86efac;
+      --c-warn: #b45309;        /* 警示 —— 深橙 */
+      --c-warn-bg: #fffbeb;
+      --c-warn-bd: #fcd34d;
+
+      --shadow: 0 1px 3px rgba(0,0,0,0.07);
+      --shadow-md: 0 4px 10px rgba(0,0,0,0.09);
       --radius: 12px;
       --radius-sm: 8px;
-    }
-
-    [data-theme="dark"] {
-      --bg: #0f1117;
-      --card-bg: #1a1d2e;
-      --border: #2d3748;
-      --text-primary: #e2e8f0;
-      --text-secondary: #a0aec0;
-      --text-muted: #4a5568;
-      --accent: #7b93ff;
-      --accent-light: #1e2640;
-      --red: #fc8181;
-      --red-light: #2d1b1b;
-      --green: #68d391;
-      --green-light: #1a2d1a;
-      --yellow: #f6e05e;
-      --yellow-light: #2d2a1a;
-      --gray: #a0aec0;
-      --gray-light: #1a1d2e;
-      --shadow: 0 1px 3px rgba(0,0,0,0.3);
-      --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
     }
 
     /* ==============================
@@ -277,17 +262,18 @@
     .signal-badge {
       display: inline-flex;
       align-items: center;
-      padding: 4px 10px;
+      padding: 4px 12px;
       border-radius: 20px;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       white-space: nowrap;
       flex-shrink: 0;
+      letter-spacing: .02em;
     }
-    .signal-high { background: var(--red-light); color: var(--red); }
-    .signal-low { background: var(--green-light); color: var(--green); }
-    .signal-neutral { background: var(--gray-light); color: var(--gray); }
-    .signal-loading { background: var(--accent-light); color: var(--accent); }
+    .signal-high    { background: var(--c-sell-bg); color: var(--c-sell); border: 1px solid var(--c-sell-bd); }
+    .signal-low     { background: var(--c-buy-bg);  color: var(--c-buy);  border: 1px solid var(--c-buy-bd); }
+    .signal-neutral { background: #f1f5f9; color: var(--text-secondary); border: 1px solid var(--border); }
+    .signal-loading { background: var(--accent-light); color: var(--accent); border: 1px solid #c3cef9; }
 
     /* 主要数值区 */
     .card-metrics {
@@ -305,8 +291,8 @@
       line-height: 1;
       margin-bottom: 4px;
     }
-    .metric-value.high { color: var(--red); }
-    .metric-value.low { color: var(--green); }
+    .metric-value.high    { color: var(--c-sell); }
+    .metric-value.low     { color: var(--c-buy); }
     .metric-value.neutral { color: var(--text-primary); }
 
     .metric-unit {
@@ -448,8 +434,8 @@
       border-bottom: none;
     }
 
-    .spread-positive { color: var(--red); font-weight: 600; }
-    .spread-negative { color: var(--green); font-weight: 600; }
+    .spread-positive { color: var(--c-sell); font-weight: 600; }
+    .spread-negative { color: var(--c-buy);  font-weight: 600; }
 
     .calendar-chart {
       height: 200px;
@@ -863,19 +849,19 @@ function renderSections() {
 function renderStrategyCardSkeleton(s) {
   return `
     <div class="strategy-card" id="card_${s.id}">
-      <div class-card-header">
-        <div class="card-name">${s.name}</div>
-        <div class="card-formula">${s.formula || ''}</div>
-      </div>
-      <div class="card-body">
-        <div class="card-main-val" id="val_${s.id}">
-          <span class="loading-dots">加载中</span>
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:flex-start;padding:14px 16px 10px">
+        <div>
+          <div class="card-name" style="font-size:15px;font-weight:700;margin-bottom:2px">${s.name}</div>
+          <div class="card-formula" style="font-size:11px;color:var(--text-muted);font-family:monospace">${s.formula || ''}</div>
         </div>
-        <div class="card-stats" id="stats_${s.id}"></div>
-        <div class="card-chart" id="chart_${s.id}"></div>
-        <div class="card-signal" id="signal_${s.id}"></div>
-        <div class="card-desc">${s.description || ''}</div>
+        <div id="signal_${s.id}" style="flex-shrink:0;margin-left:8px">
+          <span class="signal-badge signal-loading">加载中</span>
+        </div>
       </div>
+      <div style="padding:0 16px 6px" id="val_${s.id}"></div>
+      <div style="padding:0 16px 8px" id="stats_${s.id}"></div>
+      <div class="card-chart" id="chart_${s.id}" style="padding:0 4px 4px"></div>
+      <div style="padding:8px 16px 12px;font-size:11px;color:var(--text-muted);line-height:1.6;border-top:1px solid var(--border)">${s.description || ''}</div>
     </div>
   `;
 }
@@ -951,81 +937,101 @@ async function loadCalendarData(sym, years) {
 // 卡片更新
 // ============================================================
 
-function updateStrategyCard(s, data) {
-  const { current, stats, signal, dates, spreads } = data;
+// 语义色（与CSS变量对应）
+const C = {
+  sell:    '#d32f2f',  // 偏高/卖出 —— 深红
+  buy:     '#1a7f4b',  // 偏低/买入 —— 深绿
+  warn:    '#b45309',  // 警示/中性 —— 深橙
+  neutral: '#6b7a94',  // 普通文字 —— 灰
+  muted:   '#b0bac9',  // 次要文字
+  line:    '#3b6cf4',  // 折线主色
+  mean:    '#b0bac9',  // 均值虚线
+};
 
-  // 主数值
+function signalColor(sig) {
+  return sig === 'high' ? C.sell : sig === 'low' ? C.buy : C.neutral;
+}
+
+function updateStrategyCard(s, data) {
+  const { stats, signal, dates, spreads } = data;
+  const current = stats ? stats.current : data.current;
+
+  // ① 主数值（大字，只有偏高/偏低着色）
   const valEl = document.getElementById(`val_${s.id}`);
   if (valEl) {
-    const signalColor = signal === 'high' ? '#ef4444' : signal === 'low' ? '#22c55e' : '#6b7280';
-    const arrow = signal === 'high' ? '↑' : signal === 'low' ? '↓' : '→';
+    const col = signalColor(signal);
+    const arrow = signal === 'high' ? ' ↑' : signal === 'low' ? ' ↓' : '';
     valEl.innerHTML = `
-      <span class="main-number" style="color:${signalColor}">
+      <span style="font-size:2rem;font-weight:700;color:${col};line-height:1">
         ${current >= 0 ? '+' : ''}${current.toFixed(0)}
       </span>
-      <span class="main-unit">${s.unit}</span>
-      <span class="signal-arrow" style="color:${signalColor}">${arrow}</span>
+      <span style="font-size:.75rem;color:var(--text-muted);margin-left:4px">${s.unit}${arrow}</span>
     `;
   }
 
-  // 统计数据
+  // ② 统计（历史分位着色，其余灰色）
   const statsEl = document.getElementById(`stats_${s.id}`);
   if (statsEl && stats) {
-    const pctColor = stats.percentile > 80 ? '#ef4444' : stats.percentile < 20 ? '#22c55e' : '#6b7280';
+    const pct = stats.percentile;
+    const pctCol = pct > 80 ? C.sell : pct < 20 ? C.buy : C.neutral;
+    const zCol   = Math.abs(stats.zscore||stats.z||0) >= 1.5 ? C.warn : C.neutral;
     statsEl.innerHTML = `
-      <div class="stat-row">
-        <span class="stat-label">历史分位</span>
-        <span class="stat-val" style="color:${pctColor}">P${stats.percentile.toFixed(1)}%</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-label">Z-Score</span>
-        <span class="stat-val">${stats.z >= 0 ? '+' : ''}${stats.z.toFixed(2)}σ</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-label">均值</span>
-        <span class="stat-val">${stats.mean.toFixed(0)}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-label">1σ</span>
-        <span class="stat-val">±${stats.std.toFixed(0)}</span>
+      <div style="display:flex;gap:16px;padding:4px 0;font-size:.75rem;flex-wrap:wrap">
+        <span style="color:var(--text-muted)">分位
+          <b style="color:${pctCol};font-size:.85rem"> P${pct.toFixed(1)}%</b>
+        </span>
+        <span style="color:var(--text-muted)">Z
+          <b style="color:${zCol};font-size:.85rem"> ${(stats.zscore||stats.z||0)>=0?'+':''}${(stats.zscore||stats.z||0).toFixed(2)}σ</b>
+        </span>
+        <span style="color:var(--text-muted)">均值
+          <b style="color:var(--text-secondary);font-size:.85rem"> ${stats.mean.toFixed(0)}</b>
+        </span>
+        <span style="color:var(--text-muted)">1σ
+          <b style="color:var(--text-secondary);font-size:.85rem"> ±${stats.std.toFixed(0)}</b>
+        </span>
       </div>
     `;
   }
 
-  // 信号标签
+  // ③ 操作信号（最重要 —— 加大加粗，有色背景）
   const signalEl = document.getElementById(`signal_${s.id}`);
   if (signalEl) {
-    const signalMap = {
-      'high': { text: '偏高 · 关注做空', color: '#fef2f2', border: '#fecaca', txt: '#dc2626' },
-      'low':  { text: '偏低 · 关注做多', color: '#f0fdf4', border: '#bbf7d0', txt: '#16a34a' },
-      'neutral': { text: '中性 · 观望', color: '#f9fafb', border: '#e5e7eb', txt: '#6b7280' },
+    const sigMap = {
+      high:    { cls: 'signal-high',    label: '↑ 偏高 · 考虑做空' },
+      low:     { cls: 'signal-low',     label: '↓ 偏低 · 考虑做多' },
+      neutral: { cls: 'signal-neutral', label: '→ 中性 · 观望' },
     };
-    const sig = signalMap[signal] || signalMap['neutral'];
-    signalEl.innerHTML = `
-      <span style="background:${sig.color};border:1px solid ${sig.border};color:${sig.txt};padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700">${sig.text}</span>
-    `;
+    const sig = sigMap[signal] || sigMap.neutral;
+    signalEl.innerHTML = `<span class="signal-badge ${sig.cls}">${sig.label}</span>`;
   }
 
-  // 图表
+  // ④ 迷你折线图（单色，减少视觉噪音）
   const chartEl = document.getElementById(`chart_${s.id}`);
   if (chartEl && dates && spreads) {
-    chartEl.style.height = '120px';
-    const chart = echarts.init(chartEl);
+    chartEl.style.height = '100px';
+    if (!charts[s.id] || charts[s.id].isDisposed()) {
+      charts[s.id] = echarts.init(chartEl);
+    }
     const mean = stats ? stats.mean : 0;
-    chart.setOption({
+    charts[s.id].setOption({
       backgroundColor: 'transparent',
-      grid: { left: 40, right: 8, top: 8, bottom: 22 },
-      tooltip: { trigger: 'axis', textStyle: { fontSize: 11 } },
-      xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 8, color: '#9ca3af',
-        interval: Math.floor(dates.length / 4), formatter: v => v ? v.slice(0,7) : '' },
-        axisLine: { lineStyle: { color: '#e5e7eb' } }, splitLine: { show: false } },
-      yAxis: { type: 'value', scale: true, axisLabel: { fontSize: 8, color: '#9ca3af',
-        formatter: v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : v },
-        splitLine: { lineStyle: { color: '#f3f4f6', type: 'dashed' } } },
+      grid: { left: 38, right: 6, top: 6, bottom: 20 },
+      tooltip: { trigger: 'axis', textStyle: { fontSize: 11 },
+        backgroundColor: '#fff', borderColor: '#e4e8ee', extraCssText: 'box-shadow:0 2px 8px rgba(0,0,0,.1)' },
+      xAxis: { type: 'category', data: dates,
+        axisLabel: { fontSize: 9, color: C.muted, interval: Math.floor(dates.length / 3),
+          formatter: v => v ? v.slice(2,7) : '' },
+        axisLine: { lineStyle: { color: '#e4e8ee' } }, splitLine: { show: false } },
+      yAxis: { type: 'value', scale: true,
+        axisLabel: { fontSize: 9, color: C.muted,
+          formatter: v => Math.abs(v)>=1000 ? (v/1000).toFixed(1)+'k' : v },
+        splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } } },
       series: [
-        { type: 'line', data: spreads, lineStyle: { color: '#ea580c', width: 1.5 }, symbol: 'none' },
+        { type: 'line', data: spreads, lineStyle: { color: C.line, width: 1.5 }, symbol: 'none',
+          areaStyle: { color: { type: 'linear', x:0,y:0,x2:0,y2:1,
+            colorStops: [{offset:0,color:'rgba(59,108,244,0.12)'},{offset:1,color:'rgba(59,108,244,0)'}] }} },
         { type: 'line', data: new Array(dates.length).fill(mean),
-          lineStyle: { color: '#94a3b8', width: 1, type: 'dashed' }, symbol: 'none' },
+          lineStyle: { color: C.muted, width: 1, type: 'dashed' }, symbol: 'none' },
       ]
     });
   }
@@ -1035,26 +1041,24 @@ function updateCalendarCard(sym, data) {
   const valEl = document.getElementById(`cal_val_${sym}`);
   if (!valEl) return;
 
-  if (data.error) {
-    valEl.innerHTML = `<span style="color:#6b7280;font-size:.75rem">${data.error}</span>`;
+  if (data.error || !data.supported) {
+    valEl.innerHTML = `<span style="color:var(--text-muted);font-size:.75rem">${data.error || '暂无跨期数据'}</span>`;
     return;
   }
 
-  const { spreads } = data;
-  if (!spreads || spreads.length === 0) {
-    valEl.innerHTML = `<span style="color:#6b7280;font-size:.75rem">暂无跨期数据</span>`;
+  const spreads = data.realtime_spreads || [];
+  if (!spreads.length) {
+    valEl.innerHTML = `<span style="color:var(--text-muted);font-size:.75rem">暂无跨期数据</span>`;
     return;
   }
 
-  // 展示各月价差
-  valEl.innerHTML = spreads.map(sp => `
-    <div class="cal-spread-row">
-      <span class="cal-spread-label">${sp.label}</span>
-      <span class="cal-spread-val" style="color:${sp.value > 0 ? '#ea580c' : '#22c55e'}">
-        ${sp.value >= 0 ? '+' : ''}${sp.value.toFixed(0)}
-      </span>
-    </div>
-  `).join('');
+  valEl.innerHTML = `<div style="padding:4px 0">` + spreads.map(sp => {
+    const col = sp.spread > 0 ? C.sell : C.buy;
+    return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.8rem">
+      <span style="color:var(--text-secondary)">${sp.label}</span>
+      <b style="color:${col}">${sp.spread >= 0 ? '+' : ''}${sp.spread.toFixed(0)}</b>
+    </div>`;
+  }).join('') + `</div>`;
 }
 
 // ============================================================
