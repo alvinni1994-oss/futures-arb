@@ -423,11 +423,10 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
         <div class="status-line" id="webhook-status">未启用</div>
       </div>
 
-      <div class="alert-item">
+      <!-- 邮件提醒已隐藏，当前使用微信推送 -->
+      <div class="alert-item" style="display:none" id="email-section">
         <label>📧 邮件提醒（可添加多个收件人）</label>
-        <div class="email-list" id="email-list">
-          <!-- 动态渲染 -->
-        </div>
+        <div class="email-list" id="email-list"></div>
         <button class="add-email-btn" onclick="addEmailRow()">+ 添加收件邮箱</button>
         <div class="toggle-row" onclick="toggleEmail()">
           <div class="toggle-sw" id="sw-email"></div>
@@ -435,10 +434,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
         </div>
         <button class="test-btn" onclick="testEmail()">📨 发测试邮件</button>
         <div class="status-line" id="email-status">未启用</div>
-        <div class="status-line" id="email-cfg-hint" style="margin-top:4px;color:var(--orange);display:none">
-          ⚙️ 邮件需要后端配置：Render → futures-arb → Environment → 添加<br>
-          <b>SMTP_USER</b> = 你的QQ邮箱 &nbsp;|&nbsp; <b>SMTP_PASS</b> = QQ邮箱授权码（16位）
-        </div>
+        <div class="status-line" id="email-cfg-hint" style="margin-top:4px;color:var(--orange);display:none"></div>
       </div>
     </div>
   </div>
