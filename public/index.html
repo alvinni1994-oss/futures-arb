@@ -149,9 +149,9 @@ body{background:var(--bg);color:var(--t);font-family:'Segoe UI',system-ui,sans-s
         </div>
       </div>
       <div class="dc-prices" id="dc-prices">
-        BR主力：<b id="hdr-br">—</b><br>
-        NR主力：<b id="hdr-nr">—</b><br>
-        数据日期：<b id="hdr-date" style="color:#58a6ff">—</b>
+        <span id="hdr-br-label">BR主力</span>：<b id="hdr-br">—</b><span id="hdr-br-rt" style="color:#3fb950;font-size:.65rem;margin-left:3px"></span><br>
+        <span id="hdr-nr-label">NR主力</span>：<b id="hdr-nr">—</b><span id="hdr-nr-rt" style="color:#3fb950;font-size:.65rem;margin-left:3px"></span><br>
+        数据日期：<b id="hdr-date" style="color:#58a6ff">—</b> <span id="hdr-rt-badge"></span>
       </div>
     </div>
     <div class="dc-actions">
@@ -330,7 +330,7 @@ body{background:var(--bg);color:var(--t);font-family:'Segoe UI',system-ui,sans-s
   <div class="cbx"><div class="cbx-hdr">BR / NR 价格走势（双轴）</div><div id="pc"></div></div>
   <div class="sg" id="sg"></div>
   <div class="cbx"><div class="cbx-hdr">历史分布直方图（红色=当前位置）</div><div id="hc"></div></div>
-  <div class="ft">数据：新浪财经 BR0/NR0 主力连续合约（每日收盘价，1小时缓存）· ⚠️ 数据存在延迟，仅供研究参考，不构成投资建议</div>
+  <div class="ft">数据：新浪财经期货实时行情（<b id="ft-sym">BR0/NR0</b>，盘中自动跟随主力合约）· 历史统计数据1小时缓存，实时价格30秒缓存 · ⚠️ 仅供研究参考，不构成投资建议</div>
 </div>
 
 <script>
@@ -566,10 +566,22 @@ function renderDecision(d){
   const exit_=document.getElementById("dc-exit");
   const note=document.getElementById("dc-note");
 
-  // 更新价格显示
+  // 更新价格显示（含实时合约标签）
   document.getElementById("hdr-br").textContent=br.toLocaleString();
   document.getElementById("hdr-nr").textContent=nr.toLocaleString();
   document.getElementById("hdr-date").textContent=d.last_date;
+  // 显示实时合约代码（如 BR2605）
+  if(d.rt_sym_a) document.getElementById("hdr-br-label").textContent="BR("+d.rt_sym_a+")";
+  if(d.rt_sym_b) document.getElementById("hdr-nr-label").textContent="NR("+d.rt_sym_b+")";
+  if(d.realtime){
+    document.getElementById("hdr-br-rt").textContent="🟢实时";
+    document.getElementById("hdr-nr-rt").textContent="🟢实时";
+    document.getElementById("hdr-rt-badge").innerHTML='<span style="background:#1a3a1a;color:#3fb950;padding:1px 6px;border-radius:4px;font-size:.62rem">● 实时盘中价</span>';
+  } else {
+    document.getElementById("hdr-br-rt").textContent="昨收";
+    document.getElementById("hdr-nr-rt").textContent="昨收";
+    document.getElementById("hdr-rt-badge").innerHTML='<span style="background:#1c1400;color:#d29922;padding:1px 6px;border-radius:4px;font-size:.62rem">⚠ 昨日收盘价</span>';
+  }
 
   // 更新实时公式
   document.getElementById("formula-live").textContent=
@@ -645,8 +657,12 @@ function renderDecision(d){
   }
 
   note.textContent=
-    "配对：2手BR(5吨×2=10吨) : 1手NR(10吨×1=10吨) · 比值=BR÷NR · 数据日期："+d.last_date+
-    " · 数据为收盘价，非实时盘中价 · ⚠️ 仅供研究参考，不构成投资建议";
+    "配对：2手BR(5吨×2=10吨) : 1手NR(10吨×1=10吨) · 比值=BR÷NR · "+
+    (d.realtime?"🟢 实时盘中价 "+d.last_date+" (30秒更新)":"⚠ 昨日收盘价 "+d.last_date)+
+    " · 仅供研究参考，不构成投资建议";
+  // 更新底部合约代码
+  const ftSym=document.getElementById("ft-sym");
+  if(ftSym&&d.rt_sym_a&&d.rt_sym_b) ftSym.textContent=d.rt_sym_a+"/"+d.rt_sym_b;
 
   if(alertNeeded) fireAlert(alertTitle, alertBody);
 }
@@ -674,8 +690,8 @@ function render(){
   const dc = dlt>0?"up":dlt<0?"dn":"fl";
   const zc = Math.abs(st.z)>=T.strong?"dn":Math.abs(st.z)>=T.open?"hi":"up";
   document.getElementById("mcs").innerHTML=`
-    <div class="mc-card"><div class="ml">BR最新（主力）</div><div class="mv" style="color:#f0883e">${br.toLocaleString()}</div><div class="md fl">5吨/手 · ${d.last_date}</div></div>
-    <div class="mc-card"><div class="ml">NR最新（主力）</div><div class="mv" style="color:#ce93d8">${nr.toLocaleString()}</div><div class="md fl">10吨/手 · ${d.last_date}</div></div>
+    <div class="mc-card"><div class="ml">BR${d.rt_sym_a?'('+d.rt_sym_a+')':''}主力</div><div class="mv" style="color:#f0883e">${br.toLocaleString()}</div><div class="md ${d.realtime?'up':'fl'}">${d.realtime?'🟢实时盘中':'昨日收盘'} · 5吨/手</div></div>
+    <div class="mc-card"><div class="ml">NR${d.rt_sym_b?'('+d.rt_sym_b+')':''}主力</div><div class="mv" style="color:#ce93d8">${nr.toLocaleString()}</div><div class="md ${d.realtime?'up':'fl'}">${d.realtime?'🟢实时盘中':'昨日收盘'} · 10吨/手</div></div>
     <div class="mc-card"><div class="ml">当前${ir?"BR/NR比值":"BR-NR价差"}</div><div class="mv">${st.cur.toFixed(dp)}</div><div class="md ${dc}">${(dlt>=0?"+":"")+dlt.toFixed(dp)}</div></div>
     <div class="mc-card"><div class="ml">历史均值</div><div class="mv">${st.mean.toFixed(dp)}</div></div>
     <div class="mc-card"><div class="ml">标准差 σ</div><div class="mv">${st.std.toFixed(dp)}</div></div>
@@ -763,9 +779,38 @@ function render(){
     </div>`;
 }
 
+// 盘中实时价格轮询（60秒，仅更新价格标签，不重绘图表）
+let rtTimer=null;
+async function pollRealtime(){
+  try{
+    const r=await fetch(API+"/api/realtime?a=BR&b=NR");
+    if(!r.ok) return;
+    const rt=await r.json();
+    if(rt.error) return;
+    // 更新头部价格
+    document.getElementById("hdr-br").textContent=rt.ca.toLocaleString();
+    document.getElementById("hdr-nr").textContent=rt.cb.toLocaleString();
+    document.getElementById("hdr-br-label").textContent="BR("+rt.sym_a+")";
+    document.getElementById("hdr-nr-label").textContent="NR("+rt.sym_b+")";
+    document.getElementById("hdr-br-rt").textContent="🟢实时";
+    document.getElementById("hdr-nr-rt").textContent="🟢实时";
+    document.getElementById("hdr-date").textContent=new Date().toLocaleDateString("zh-CN");
+    document.getElementById("hdr-rt-badge").innerHTML='<span style="background:#1a3a1a;color:#3fb950;padding:1px 6px;border-radius:4px;font-size:.62rem">● 实时盘中</span>';
+    document.getElementById("lupd").textContent=new Date().toLocaleTimeString("zh-CN");
+    const ftSym=document.getElementById("ft-sym");
+    if(ftSym) ftSym.textContent=rt.sym_a+"/"+rt.sym_b;
+  }catch(e){}
+}
+
+function startRtPoll(){
+  if(rtTimer) clearInterval(rtTimer);
+  rtTimer=setInterval(pollRealtime, 60000); // 每60秒轮询一次实时价
+}
+
 window.addEventListener("resize",()=>{mc_c&&mc_c.resize();pc_c&&pc_c.resize();hc_c&&hc_c.resize()});
 loadSettings();
 loadPair(false);
+startRtPoll(); // 启动实时价格轮询
 </script>
 </body>
 </html>

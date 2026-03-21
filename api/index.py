@@ -57,7 +57,81 @@ RECOMMENDED_PAIRS = [
 import functools, time
 
 _cache: dict = {}
-CACHE_TTL = 3600  # 1小时缓存
+CACHE_TTL = 3600  # 历史数据1小时缓存
+
+# 实时行情缓存（30秒）
+_rt_cache: dict = {}
+CACHE_RT_TTL = 30
+
+# 品种名称映射 (用于 futures_zh_realtime)
+REALTIME_NAME_MAP = {
+    "BR": "丁二烯橡胶",
+    "NR": "20号胶",
+    "RU": "橡胶",
+    "BU": "沥青",
+    "FU": "燃油",
+    "SC": "原油",
+    "AU": "黄金",
+    "AG": "白银",
+    "CU": "沪铜",
+    "AL": "沪铝",
+    "ZN": "沪锌",
+    "L":  "塑料",
+    "PP": "PP",
+    "EB": "苯乙烯",
+    "MA": "郑醇",
+    "EG": "乙二醇",
+    "I":  "铁矿石",
+    "J":  "焦炭",
+    "JM": "焦煤",
+    "M":  "豆粕",
+    "Y":  "豆油",
+    "P":  "棕榈",
+    "OI": "菜油",
+    "CF": "棉花",
+    "SR": "白糖",
+    "RM": "菜粕",
+}
+
+def get_realtime_price(symbol: str) -> dict | None:
+    """获取实时行情（主力合约最新价），30秒缓存"""
+    import akshare as ak
+    now = time.time()
+    if symbol in _rt_cache:
+        data, ts = _rt_cache[symbol]
+        if now - ts < CACHE_RT_TTL:
+            return data
+    
+    name = REALTIME_NAME_MAP.get(symbol)
+    if not name:
+        return None
+    
+    try:
+        df = ak.futures_zh_realtime(symbol=name)
+        # 取主力合约（symbol == XXX0，或持仓量最大的近月合约）
+        main = df[df["symbol"] == f"{symbol}0"]
+        if main.empty:
+            # 按持仓量取最大的
+            main = df[df["symbol"].str.match(f"^{symbol}\\d{{4}}$")].nlargest(1, "position")
+        if main.empty:
+            return None
+        row = main.iloc[0]
+        result = {
+            "symbol": str(row["symbol"]),
+            "price": float(row["trade"]),
+            "open": float(row["open"]) if pd.notna(row["open"]) else None,
+            "high": float(row["high"]) if pd.notna(row["high"]) else None,
+            "low": float(row["low"]) if pd.notna(row["low"]) else None,
+            "volume": int(row["volume"]) if pd.notna(row["volume"]) else None,
+            "position": int(row["position"]) if pd.notna(row["position"]) else None,
+            "source": "realtime",
+            "ts": int(now),
+        }
+        _rt_cache[symbol] = (result, now)
+        return result
+    except Exception:
+        return None
+
 
 def load_data(symbol: str, years: int = 3) -> pd.DataFrame:
     cache_key = f"{symbol}_{years}"
@@ -90,6 +164,23 @@ def compute_pair(sym_a: str, sym_b: str, years: int = 3) -> dict:
         db[["date", "close"]].rename(columns={"close": "cb"}),
         on="date", how="inner"
     ).sort_values("date").reset_index(drop=True)
+
+    # 尝试用实时行情更新最后一行（盘中/夜盘实时价格）
+    rt_a = get_realtime_price(sym_a)
+    rt_b = get_realtime_price(sym_b)
+    realtime_updated = False
+    if rt_a and rt_b and rt_a["price"] > 0 and rt_b["price"] > 0:
+        today = pd.Timestamp.now().normalize()
+        last_date = merged["date"].iloc[-1]
+        if last_date < today:
+            # 夜盘/盘中：追加今日实时行情作为新行
+            new_row = pd.DataFrame([{"date": today, "ca": rt_a["price"], "cb": rt_b["price"]}])
+            merged = pd.concat([merged, new_row], ignore_index=True)
+        else:
+            # 当日：用实时价覆盖最后一行（更准确）
+            merged.loc[merged.index[-1], "ca"] = rt_a["price"]
+            merged.loc[merged.index[-1], "cb"] = rt_b["price"]
+        realtime_updated = True
 
     if len(merged) < 20:
         raise ValueError("数据不足")
@@ -155,6 +246,9 @@ def compute_pair(sym_a: str, sym_b: str, years: int = 3) -> dict:
         "cb_last": round(float(merged["cb"].iloc[-1]), 2),
         "last_date": merged["date"].iloc[-1].strftime("%Y-%m-%d"),
         "count": len(merged),
+        "realtime": realtime_updated,
+        "rt_sym_a": rt_a["symbol"] if rt_a else None,
+        "rt_sym_b": rt_b["symbol"] if rt_b else None,
     }
 
 
@@ -185,6 +279,24 @@ def get_pair(a: str, b: str, years: int = 3):
         return result
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@app.get("/api/realtime")
+def get_realtime(a: str = "BR", b: str = "NR"):
+    """快速实时行情接口（30秒缓存），不重算历史统计"""
+    a = a.upper(); b = b.upper()
+    rt_a = get_realtime_price(a)
+    rt_b = get_realtime_price(b)
+    if not rt_a or not rt_b:
+        return JSONResponse({"error": "实时行情获取失败"}, status_code=503)
+    return {
+        "a": a, "b": b,
+        "ca": rt_a["price"], "cb": rt_b["price"],
+        "sym_a": rt_a["symbol"], "sym_b": rt_b["symbol"],
+        "ratio": round(rt_a["price"] / rt_b["price"], 4) if rt_b["price"] else None,
+        "diff": round(rt_a["price"] - rt_b["price"], 2),
+        "ts": int(time.time()),
+    }
 
 
 @app.get("/api/batch")
