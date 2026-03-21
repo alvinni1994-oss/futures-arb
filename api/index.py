@@ -751,12 +751,22 @@ class SettingsReq(BaseModel):
     key: str = "default"
     thresh: dict = {}
     alert: dict = {}
+    webhook_keys: list = []  # 多 Key 微信推送列表
 
 @app.post("/api/settings")
 def save_settings(req: SettingsReq):
-    """保存用户设置（跨设备同步）"""
+    """保存用户设置（跨设备同步，增量更新不覆盖其他字段）"""
     data = _load_settings()
-    data[req.key] = {"thresh": req.thresh, "alert": req.alert, "ts": time.time()}
+    existing = data.get(req.key, {})
+    # 增量合并：只更新非空字段，不覆盖其他已存字段
+    if req.thresh:
+        existing["thresh"] = req.thresh
+    if req.alert:
+        existing["alert"] = req.alert
+    if req.webhook_keys:
+        existing["webhook_keys"] = req.webhook_keys
+    existing["ts"] = time.time()
+    data[req.key] = existing
     _save_settings(data)
     return {"ok": True}
 

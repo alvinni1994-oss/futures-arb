@@ -1134,7 +1134,7 @@ function _loadWebhookKeys() {
   if (!Array.isArray(webhookKeys)) webhookKeys = [];
   if (webhookKeys.length === 0) webhookKeys = [{ key: "", enabled: false, label: "" }];
 }
-function _saveWebhookKeys() {
+function _syncDomToWebhookKeys() {
   // 先从 DOM 同步最新值
   webhookKeys.forEach((_, i) => {
     const inp = document.getElementById(`wk-key-${i}`);
@@ -1142,7 +1142,31 @@ function _saveWebhookKeys() {
     if (inp) webhookKeys[i].key = inp.value.trim();
     if (lbl) webhookKeys[i].label = lbl.value.trim();
   });
+}
+function _saveWebhookKeys() {
+  _syncDomToWebhookKeys();
+  // 1. 本地缓存（离线可用）
   localStorage.setItem(WKEYS_LS, JSON.stringify(webhookKeys));
+  // 2. 异步同步到服务器（跨设备共享）
+  fetch(`${API}/api/settings`, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ key: "webhook_config", webhook_keys: webhookKeys })
+  }).catch(() => {}); // 静默失败，不影响使用
+}
+async function _loadWebhookKeysFromServer() {
+  try {
+    const r = await fetch(`${API}/api/settings?key=webhook_config`);
+    if (r.ok) {
+      const d = await r.json();
+      if (d && Array.isArray(d.webhook_keys) && d.webhook_keys.length > 0) {
+        webhookKeys = d.webhook_keys;
+        // 同时更新本地缓存
+        localStorage.setItem(WKEYS_LS, JSON.stringify(webhookKeys));
+        return true;
+      }
+    }
+  } catch(e) {}
+  return false;
 }
 function renderWebhookList() {
   const ul = document.getElementById("webhook-list");
@@ -1404,9 +1428,12 @@ async function loadSettings() {
   setAlertTimer();
   updateNotifUI();
 
-  // 多 Key 微信推送：从 localStorage 加载并渲染
-  _loadWebhookKeys();
+  // 多 Key 微信推送：优先从服务器加载（跨设备同步），fallback 本地缓存
+  _loadWebhookKeys(); // 先用本地缓存快速渲染
   renderWebhookList();
+  _loadWebhookKeysFromServer().then(loaded => {
+    if (loaded) renderWebhookList(); // 服务器有数据则刷新
+  });
 }
 
 window.addEventListener("resize", () => {
