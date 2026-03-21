@@ -76,7 +76,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 .dc-price-val{font-size:1.2rem;font-weight:800;color:var(--t)}
 .dc-price-sub{font-size:.65rem;color:var(--t3);margin-top:1px}
 .dc-price-div{width:1px;background:var(--bd);height:36px;align-self:center}
-.dc-diff-val{font-size:1.6rem;font-weight:900}
+.dc-diff-val{font-size:2.4rem;font-weight:900}
 .dc-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin:12px 18px 0}
 .dc-action{background:var(--bg3);border-radius:8px;padding:10px 14px;border:1px solid var(--bd)}
 .dca-label{font-size:.62rem;color:var(--t3);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
@@ -209,6 +209,14 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 
       <!-- 信号卡 -->
       <div class="dc-signal-card">
+        <!-- 策略信息头 -->
+        <div id="strat-info-hdr" style="padding:10px 18px 0;display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+          <div>
+            <div id="strat-title-big" style="font-size:1.1rem;font-weight:800;color:var(--t);margin-bottom:4px">BR/NR 橡胶套利</div>
+            <div id="strat-tags" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px"></div>
+            <div id="strat-logic" style="font-size:.72rem;color:var(--t3);line-height:1.5">—</div>
+          </div>
+        </div>
         <div id="dc-bar" class="dc-signal-bar wait">
           <div style="display:flex;align-items:flex-start;gap:10px">
             <span id="dc-icon" style="font-size:1.5rem">📊</span>
@@ -392,6 +400,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
             <option value="3" selected>3年</option><option value="5">5年</option>
           </select>
         </div>
+        <div id="chart-summary" style="font-size:.68rem;color:var(--t3);margin:-6px 0 8px;line-height:1.6">—</div>
         <div id="mc"></div>
       </div>
 
@@ -443,6 +452,19 @@ const STRATEGY_NAME = {
   m_rm: "豆粕-菜粕",
   rm_c: "菜粕-玉米",
   lu_fu: "LU-FU 跨品种",
+};
+
+const STRATEGY_META = {
+  br_nr:     { tags:["跨品种","价差套利","中风险"], ratio:"2手BR : 1手NR", risk:"中", logic:"合成橡胶(BR)与天然橡胶(NR)互为轮胎配方替代品，比价回归是核心逻辑" },
+  im_ic:     { tags:["股指","跨品种","低风险"],   ratio:"1手IM : 1手IC",  risk:"低", logic:"IM(中证1000)与IC(中证500)均为小盘股指，流动性差异产生溢价机会" },
+  ta_px:     { tags:["加工费","PX","中风险"],     ratio:"PX→TA加工费",    risk:"中", logic:"对二甲苯(PX)加工为涤纶(TA)，加工费均值回归" },
+  pr_bottle: { tags:["加工费","瓶片","中风险"],   ratio:"PTA+MEG→瓶片",   risk:"中", logic:"PTA+MEG原料加工为瓶片，加工费均值回归" },
+  pr_pf:     { tags:["加工费","丙纶","中风险"],   ratio:"PP→PF加工费",     risk:"中", logic:"聚丙烯(PP)加工为丙纶(PF)，加工费均值回归" },
+  l_pp:      { tags:["跨品种","塑料","中风险"],   ratio:"1手L : 1手PP",   risk:"中", logic:"聚乙烯(L)与聚丙烯(PP)同为烯烃，工艺路线接近，价差均值回归" },
+  rm_oi:     { tags:["跨品种","油粕","中风险"],   ratio:"1手RM : 1手OI",  risk:"中", logic:"菜粕与菜油同源菜籽压榨，压榨利润约束价差范围" },
+  m_rm:      { tags:["跨品种","粕类","低风险"],   ratio:"1手M : 1手RM",   risk:"低", logic:"豆粕与菜粕均为饲料蛋白原料，替代效应约束价差" },
+  rm_c:      { tags:["跨品种","饲料","中风险"],   ratio:"1手RM : 2手C",   risk:"中", logic:"菜粕与玉米为养殖饲料配方替代，蛋白/能量比价回归" },
+  lu_fu:     { tags:["跨品种","燃油","高风险"],   ratio:"1手LU : 1手FU",  risk:"高", logic:"低硫燃油(LU)与高硫燃油(FU)价差由硫磺价差和环保政策驱动" },
 };
 
 const STRATEGY_CONFIG = {
@@ -542,8 +564,34 @@ function refreshData() { D = null; loadSpread(false); }
 function onYears() { yrs = +document.getElementById("ys").value; document.getElementById("ys2").value = yrs; loadSpread(false); }
 function onYears2() { yrs = +document.getElementById("ys2").value; document.getElementById("ys").value = yrs; loadSpread(false); }
 
+// ===== 策略信息头渲染 =====
+function renderStratHeader(id) {
+  const meta = STRATEGY_META[id] || {};
+  const name = STRATEGY_NAME[id] || id;
+
+  // 标题
+  const titleEl = document.getElementById("strat-title-big");
+  if (titleEl) titleEl.textContent = name;
+
+  // 标签
+  const tagsEl = document.getElementById("strat-tags");
+  if (tagsEl) {
+    const riskColor = { "低":"var(--green)", "中":"var(--orange)", "高":"var(--red)" };
+    tagsEl.innerHTML = (meta.tags||[]).map((t,i) => {
+      const color = i===2 ? (riskColor[meta.risk]||"var(--t3)") : "var(--blue)";
+      return `<span style="font-size:.65rem;padding:1px 7px;border-radius:10px;background:${color}15;color:${color};border:1px solid ${color}40;font-weight:600">${t}</span>`;
+    }).join('');
+    if (meta.ratio) tagsEl.innerHTML += `<span style="font-size:.65rem;padding:1px 7px;border-radius:10px;background:var(--bg3);color:var(--t2);border:1px solid var(--bd);font-weight:600">配对: ${meta.ratio}</span>`;
+  }
+
+  // 一句话逻辑
+  const logicEl = document.getElementById("strat-logic");
+  if (logicEl) logicEl.textContent = meta.logic ? `💡 逻辑：${meta.logic}` : '';
+}
+
 // ===== 主渲染 =====
 function renderAll(d) {
+  renderStratHeader(currentId);
   const sig = renderSignal(d);
   renderPrices(d);
   renderCorr(d);
@@ -712,12 +760,19 @@ function renderPrices(d) {
     </div>`;
   });
 
+  // 价差颜色根据信号偏向
+  const T = STRATEGY_CONFIG[currentId] || {};
+  const diffColor = spread >= T.strongHi ? "var(--red)" :
+                    spread >= T.openHi   ? "var(--orange)" :
+                    spread <= T.strongLo ? "var(--green)" :
+                    spread <= T.openLo   ? "var(--blue)" : "var(--t)";
+
   // 价差
   html += `<div class="dc-price-div"></div>`;
   html += `<div class="dc-price-item" style="text-align:center">
     <div class="dc-price-label">价差（${unit}）</div>
     <div style="display:flex;align-items:center;justify-content:center;gap:4px">
-      <div class="dc-diff-val" style="color:var(--orange)">${spread >= 0 ? "+" : ""}${spread.toLocaleString()}</div>
+      <div class="dc-diff-val" style="color:${diffColor}">${spread >= 0 ? "+" : ""}${spread.toLocaleString()}</div>
     </div>
     <div class="dc-price-sub">均值${d.stats.mean >= 0 ? "+" : ""}${d.stats.mean.toFixed(0)}</div>
   </div>`;
@@ -834,6 +889,23 @@ function renderCharts(d) {
   const yrsLabel = yrs === 1 ? '1年' : yrs === 2 ? '2年' : yrs === 3 ? '3年' : `${yrs}年`;
   const titleText = `${d.name || currentId} 价差（${d.unit || ''}）走势（${yrsLabel}）· 均值 / P95 / P5 / 布林带`;
   document.getElementById("mct").textContent = titleText;
+
+  // 图表摘要行
+  const stats = d.stats || {};
+  const corr = d.corr || {};
+  const dates = d.dates || [];
+  const vol = stats.std && stats.mean ? ((stats.std / Math.abs(stats.mean)) * 100).toFixed(1) : "—";
+  const corrVal = corr["1Y"] != null ? corr["1Y"].toFixed(3) : (corr["3Y"] != null ? corr["3Y"].toFixed(3) : "—");
+  const summaryEl = document.getElementById("chart-summary");
+  if (summaryEl) {
+    summaryEl.textContent = [
+      stats.std  ? `波动率: ${vol}%` : null,
+      corrVal !== "—" ? `相关性: ${corrVal}` : null,
+      stats.mean != null ? `均值: ${Math.round(stats.mean).toLocaleString()}` : null,
+      stats.std  != null ? `标准差: ${Math.round(stats.std).toLocaleString()}` : null,
+      dates.length ? `样本: ${dates.length}` : null,
+    ].filter(Boolean).join(" | ");
+  }
 
   if (!mc_c) mc_c = echarts.init(document.getElementById("mc"));
   mc_c.setOption({
