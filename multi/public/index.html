@@ -636,7 +636,10 @@
 <!-- ===== Tab导航 ===== -->
 <nav class="tab-nav">
   <div class="tab-nav-inner" id="tabNav">
-    <button class="tab-btn active" data-cat="equity_index" onclick="switchTab(this)">
+    <button class="tab-btn active" data-cat="rubber" onclick="switchTab(this)">
+      🌿 橡胶套利 <span class="tab-count">1</span>
+    </button>
+    <button class="tab-btn" data-cat="equity_index" onclick="switchTab(this)">
       股指期货 <span class="tab-count">1</span>
     </button>
     <button class="tab-btn" data-cat="processing" onclick="switchTab(this)">
@@ -692,11 +695,16 @@ let strategyData = {};   // id -> spread数据
 let realtimeData = {};   // {prices, strategy_spreads}
 let calendarData = {};   // symbol -> data
 let charts = {};         // id -> echart instance
-let activeTab = 'equity_index';
+let activeTab = 'rubber';
 let autoRefreshTimer = null;
 let lastRefreshTime = null;
 
 const CATEGORY_META = {
+  rubber: {
+    title: '橡胶套利',
+    subtitle: '丁二烯橡胶(BR) vs 天然橡胶(NR) 价差套利，配对比例 2手BR:1手NR',
+    icon: '🌿'
+  },
   equity_index: {
     title: '股指期货价差',
     subtitle: '中证1000(IM) vs 中证500(IC) 点数价差，反映市场风险偏好差异',

@@ -53,6 +53,27 @@ CALENDAR_CACHE_TTL = 60  # 1分钟
 # ============================================================
 
 STRATEGIES = [
+    # ---------- 分类零：橡胶套利 ----------
+    {
+        "id": "br_nr",
+        "name": "BR-NR橡胶价差",
+        "category": "rubber",
+        "category_name": "橡胶套利",
+        "formula": "BR − NR（元/吨）",
+        "description": (
+            "丁二烯橡胶(BR) vs 天然橡胶(NR) 价差套利。\n"
+            "配对比例：2手BR(5t×2) : 1手NR(10t×1)，名义吨数对等。\n"
+            "价差 > +1500 → 弱信号卖BR；价差 > +2500 → 强信号卖BR买NR；\n"
+            "价差 < -800 → 弱信号买BR；价差 < -1500 → 强信号买BR卖NR。"
+        ),
+        "symbols": ["BR0", "NR0"],
+        "unit": "元/吨",
+        "signal_thresholds": {"high": 1500, "low": -800},
+        "legs": [
+            {"symbol": "BR0", "coef": 1.0, "label": "BR"},
+            {"symbol": "NR0", "coef": -1.0, "label": "NR"},
+        ],
+    },
     # ---------- 分类一：股指期货价差 ----------
     {
         "id": "im_ic",
