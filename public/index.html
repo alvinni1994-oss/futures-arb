@@ -841,10 +841,11 @@ function updateAlertStatusPanel(signalKey, title){
 // ===== 定时器 =====
 function setAlertTimer(){
   if(alertTimer) clearInterval(alertTimer);
-  const freq=+document.getElementById("alert-freq").value||0;
+  const freqEl=document.getElementById("alert-freq");
+  const freq=freqEl ? (+freqEl.value||0) : 0;
   const el=document.getElementById("timer-status");
-  if(!freq){el.textContent="已关闭自动刷新";el.style.color="";return}
-  el.textContent="✅ 每"+(freq/60000)+"分钟自动刷新"; el.style.color="var(--green)";
+  if(!freq){if(el){el.textContent="已关闭自动刷新";el.style.color="";}return}
+  if(el){el.textContent="✅ 每"+(freq/60000)+"分钟自动刷新"; el.style.color="var(--green)";}
   alertTimer=setInterval(()=>loadPair(true),freq);
 }
 
@@ -854,7 +855,7 @@ function updateStratText(){
   document.querySelectorAll(".st-openlo").forEach(el=>el.textContent=T.diffOpenLo);
   document.querySelectorAll(".st-tp").forEach(el=>el.textContent=T.diffTp);
   document.querySelectorAll(".st-sl").forEach(el=>el.textContent=T.diffSl);
-  document.getElementById("st-yrs").textContent=yrs;
+  const stYrs=document.getElementById("st-yrs"); if(stYrs) stYrs.textContent=yrs;
 }
 
 function toggleStrat(){
