@@ -547,7 +547,7 @@ async function loadSettings(){
   }catch(e){}
 }
 
-function saveThresh(){
+async function saveThresh(){
   T={
     diffOpenHi:+document.getElementById("t-diff-open-hi").value||1500,
     diffStrongHi:+document.getElementById("t-diff-strong-hi").value||2500,
