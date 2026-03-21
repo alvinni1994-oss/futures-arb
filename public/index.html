@@ -841,20 +841,49 @@ function toggleStrat(){
 function showOv(t){document.getElementById("ov").classList.remove("hide");document.getElementById("ovt").textContent=t}
 function hideOv(){document.getElementById("ov").classList.add("hide")}
 
-async function loadPair(silent=false){
-  if(!silent) showOv("正在拉取 BR/NR 实时行情与历史数据...");
+async function fetchWithTimeout(url, timeoutMs=55000){
+  const ctrl=new AbortController();
+  const tid=setTimeout(()=>ctrl.abort(),timeoutMs);
   try{
-    const r=await fetch(API+"/api/pair?a=BR&b=NR&years="+yrs);
+    const r=await fetch(url,{signal:ctrl.signal});
+    clearTimeout(tid);
+    return r;
+  }catch(e){
+    clearTimeout(tid);
+    throw e;
+  }
+}
+
+let _loadRetry=0;
+async function loadPair(silent=false){
+  if(!silent) showOv("正在拉取 BR/NR 实时行情与历史数据（首次冷启动最多需要60秒）...");
+  const t0=Date.now();
+  try{
+    const r=await fetchWithTimeout(API+"/api/pair?a=BR&b=NR&years="+yrs, 65000);
     if(!r.ok) throw new Error("HTTP "+r.status);
     D=await r.json();
     if(D.error) throw new Error(D.error);
     window._lastData = D;
+    _loadRetry=0;
     render();
     document.getElementById("lupd").textContent=new Date().toLocaleTimeString("zh-CN");
     document.getElementById("rt-dot").style.background=D.realtime?"#16a34a":"#ca8a04";
   }catch(e){
     hideOv();
-    if(!silent) alert("❌ 加载失败："+e.message);
+    const elapsed=Math.round((Date.now()-t0)/1000);
+    if(e.name==="AbortError"||elapsed>30){
+      // 超时：提示用户服务冷启动中，自动重试
+      _loadRetry++;
+      if(_loadRetry<=3){
+        showOv(`服务冷启动中，正在重试 (${_loadRetry}/3)，请稍候...`);
+        setTimeout(()=>loadPair(true),8000);
+      }else{
+        _loadRetry=0;
+        if(!silent) alert("❌ 服务响应超时（Render免费版冷启动需60秒），请稍后手动点刷新重试。");
+      }
+    }else{
+      if(!silent) alert("❌ 加载失败："+e.message);
+    }
   }finally{hideOv()}
 }
 
@@ -1097,7 +1126,7 @@ function render(){
 let rtTimer=null;
 async function pollRealtime(){
   try{
-    const r=await fetch(API+"/api/realtime?a=BR&b=NR");
+    const r=await fetchWithTimeout(API+"/api/realtime?a=BR&b=NR", 15000);
     if(!r.ok) return; const rt=await r.json(); if(rt.error) return;
     document.getElementById("hdr-br").textContent=rt.ca.toLocaleString();
     document.getElementById("hdr-nr").textContent=rt.cb.toLocaleString();
