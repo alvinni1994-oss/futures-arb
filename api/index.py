@@ -158,7 +158,7 @@ def compute_pair(sym_a: str, sym_b: str, years: int = 3) -> dict:
     }
 
 
-@app.get("/")
+@app.get("/api")
 def root():
     return {"status": "ok", "message": "期货套利分析 API"}
 
