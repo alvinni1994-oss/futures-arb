@@ -1,8 +1,18 @@
 services:
+  # BR/NR 橡胶套利（原有）
   - type: web
     name: futures-arb
     env: python
     rootDir: .
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.index:app --host 0.0.0.0 --port $PORT
+    staticPublishPath: public
+
+  # 多策略套利监控（新增）
+  - type: web
+    name: futures-arb-multi
+    env: python
+    rootDir: multi
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api.index:app --host 0.0.0.0 --port $PORT
     staticPublishPath: public

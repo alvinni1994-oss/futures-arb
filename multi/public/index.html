@@ -904,7 +904,7 @@ function renderCalendarCardSkeleton(sym) {
 async function loadAllData(years) {
   try {
     // 1. 加载策略列表
-    const res = await fetch('/api/strategies');
+    const res = await fetch('/multi/api/strategies');
     const strategies = await res.json();
 
     // 2. 渲染骨架
