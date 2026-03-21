@@ -1010,11 +1010,11 @@ function render(){
   if(!mc_c) mc_c=echarts.init(document.getElementById("mc"));
   mc_c.setOption({
     backgroundColor:"#fff",
-    grid:{left:isMobile?52:65, right:isMobile?10:110, top:isMobile?80:36, bottom:30},
+    grid:{left:isMobile?52:65, right:isMobile?12:16, top:isMobile?80:72, bottom:30},
     tooltip:{trigger:"axis",axisPointer:{type:"cross"},backgroundColor:"#fff",borderColor:"#dde1e7",textStyle:{color:"#1a1d23",fontSize:11},extraCssText:"box-shadow:0 4px 12px rgba(0,0,0,.1)"},
-    legend:{top:6, right:4, orient:isMobile?"horizontal":"vertical", left:isMobile?"center":"auto",
+    legend:{top:4, left:"center", orient:"horizontal",
       textStyle:{color:"#4a5568",fontSize:isMobile?9:10},itemWidth:12,itemHeight:7,
-      itemGap:isMobile?4:8},
+      itemGap:isMobile?5:10},
     xAxis:{type:"category",data:d.dates,boundaryGap:false,axisLine:{lineStyle:{color:"#dde1e7"}},
       axisLabel:{color:"#8a93a2",fontSize:9,interval:Math.floor(d.dates.length/(isMobile?4:6)),
         formatter:v=>v?v.slice(0,7):""
@@ -1037,10 +1037,10 @@ function render(){
   if(!pc_c) pc_c=echarts.init(document.getElementById("pc"));
   pc_c.setOption({
     backgroundColor:"#fff",
-    grid:{left:isMobile?52:56, right:isMobile?52:65, top:isMobile?28:24, bottom:isMobile?36:28},
+    grid:{left:isMobile?52:56, right:isMobile?52:65, top:30, bottom:isMobile?28:28},
     tooltip:{trigger:"axis",backgroundColor:"#fff",borderColor:"#dde1e7",textStyle:{color:"#1a1d23",fontSize:11}},
-    legend:{top:isMobile?"bottom":3, right:isMobile?"center":5, bottom:isMobile?4:"auto",
-      orient:"horizontal", textStyle:{color:"#4a5568",fontSize:9},itemWidth:12,itemHeight:7},
+    legend:{top:4, left:"center", orient:"horizontal",
+      textStyle:{color:"#4a5568",fontSize:9},itemWidth:12,itemHeight:7,itemGap:12},
     xAxis:{type:"category",data:d.dates,boundaryGap:false,
       axisLabel:{color:"#8a93a2",fontSize:9,interval:Math.floor(d.dates.length/(isMobile?4:6)),
         formatter:v=>v?v.slice(0,7):""
