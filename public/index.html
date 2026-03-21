@@ -425,6 +425,10 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
         </div>
         <button class="test-btn" onclick="testEmail()">📨 发测试邮件</button>
         <div class="status-line" id="email-status">未启用</div>
+        <div class="status-line" id="email-cfg-hint" style="margin-top:4px;color:var(--orange);display:none">
+          ⚙️ 邮件需要后端配置：Render → futures-arb → Environment → 添加<br>
+          <b>SMTP_USER</b> = 你的QQ邮箱 &nbsp;|&nbsp; <b>SMTP_PASS</b> = QQ邮箱授权码（16位）
+        </div>
       </div>
     </div>
   </div>
@@ -580,6 +584,14 @@ async function sendEmailToAll(subject, body){
   const results=await Promise.all(emails.map(async to=>{
     try{
       const r=await fetch(API+"/api/send-email",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({to,subject,body})});
+      if(r.status===503){
+        const j=await r.json().catch(()=>({}));
+        return{ok:false,to,error:"未配置 SMTP：请在 Render→Environment 添加 SMTP_USER 和 SMTP_PASS"};
+      }
+      if(r.status===500){
+        const j=await r.json().catch(()=>({}));
+        return{ok:false,to,error:j.error||"服务器错误，请检查 SMTP_PASS 是否正确"};
+      }
       return r.ok?{ok:true,to}:{ok:false,to,error:"HTTP "+r.status};
     }catch(e){return{ok:false,to,error:e.message}}
   }));
@@ -595,12 +607,16 @@ async function testEmail(){
   const diff=D?D.diff_stats.cur:"—", br=D?D.ca_last:"—", nr=D?D.cb_last:"—";
   const res=await sendEmailToAll("✅ BR/NR套利监控 - 测试邮件",
     `测试邮件发送成功！\n\n当前状态：\nBR = ${br}\nNR = ${nr}\nBR−NR 价差 = ${diff} 元/吨\n\n当信号达到阈值时自动发送提醒。\n开仓阈值：差值 > +${T.diffOpenHi}元 或 < ${T.diffOpenLo}元`);
+  const hint=document.getElementById("email-cfg-hint");
   if(res.ok){
     st.textContent="✅ 已发送至："+res.ok_list.join(", ")+(res.fail_list.length?" | 失败："+res.fail_list.join(", "):"");
     st.style.color="var(--green)";
+    if(hint) hint.style.display="none";
   } else {
-    st.textContent="❌ 发送失败: "+(res.fail_list||[]).join(", ")||"未知错误";
+    const errMsg=(res.fail_list||[]).join("; ")||"未知错误";
+    st.textContent="❌ "+errMsg;
     st.style.color="var(--red)";
+    if(hint&&errMsg.includes("SMTP")) hint.style.display="block";
   }
 }
 
