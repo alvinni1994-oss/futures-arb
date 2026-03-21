@@ -406,231 +406,200 @@ async function loadDetail(id, years) {
   }
 }
 
+
 function renderDetail(s, data, years) {
   if (!s || !data) return;
   const { stats, dates, spreads } = data;
-  // signal 优先用 data.signal（API 顶层），其次 stats.signal
   const signal = data.signal || (stats && stats.signal) || 'neutral';
   const cur    = stats ? stats.current : 0;
   const pct    = stats ? stats.percentile : 50;
   const z      = stats ? stats.zscore : 0;
   const mean   = stats ? stats.mean  : 0;
   const std    = stats ? stats.std   : 0;
-  const bbU    = stats ? stats.bb_upper : null;
-  const bbL    = stats ? stats.bb_lower : null;
-  const bbM    = stats ? stats.bb_mid   : null;
+  const bbU    = stats ? (stats.bb_upper || []) : [];
+  const bbL    = stats ? (stats.bb_lower || []) : [];
   const legs   = data.legs || [];
+  const corr   = data.corr || {};
+  const thr    = data.signal_thresholds || {};
   const desc   = data.description || s.description || '';
+  const unit   = data.unit || s.unit || '';
+  const name   = data.name || s.name || '';
+  const formula = data.formula || s.formula || '';
 
-  const sigCls  = signal === 'high' ? 'sell' : signal === 'low' ? 'buy' : 'neu';
-  const sigIcon = signal === 'high' ? '📉' : signal === 'low' ? '📈' : '⏸';
-  const sigText = signal === 'high' ? `价差偏高（P${pct.toFixed(0)}%），考虑做空 ${s.name}` :
-                  signal === 'low'  ? `价差偏低（P${pct.toFixed(0)}%），考虑做多 ${s.name}` :
-                                      `价差处于中性区间（P${pct.toFixed(0)}%），建议观望`;
+  const isSell = signal === 'high';
+  const isBuy  = signal === 'low';
+  const sigCls = isSell ? 'sell' : isBuy ? 'buy' : 'neu';
 
-  const valCls = signal === 'high' ? 'val-sell' : signal === 'low' ? 'val-buy' : 'val-neu';
+  let sigTitle = '→ 中性 · 建议观望';
+  let sigBg = '#f8fafc', sigBorder = 'var(--border)', sigColor = 'var(--sub)';
+  if (isSell) {
+    sigTitle = cur >= (thr.high||9999) * 1.5 ? `🔥 强信号：做空 ${name}` : `⚠️ 弱信号：关注做空 ${name}`;
+    sigBg = 'var(--c-sell-bg)'; sigBorder = 'var(--c-sell-bd)'; sigColor = 'var(--c-sell)';
+  } else if (isBuy) {
+    sigTitle = cur <= (thr.low||0) * 1.5 ? `🚀 强信号：做多 ${name}` : `⚠️ 弱信号：关注做多 ${name}`;
+    sigBg = 'var(--c-buy-bg)'; sigBorder = 'var(--c-buy-bd)'; sigColor = 'var(--c-buy)';
+  }
+
+  const valCls = isSell ? 'val-sell' : isBuy ? 'val-buy' : 'val-neu';
   const pctCls = pct > 80 ? 'val-sell' : pct < 20 ? 'val-buy' : 'val-neu';
   const zCls   = Math.abs(z) >= 1.5 ? 'val-warn' : 'val-neu';
-  const curFmt = `${cur >= 0 ? '+' : ''}${cur.toFixed(0)}`;
+  const curFmt = (cur >= 0 ? '+' : '') + cur.toFixed(0);
   const pbarL  = Math.min(Math.max(pct, 2), 98).toFixed(1);
 
   const yearBtns = [1,2,3].map(y =>
-    `<button class="year-btn${y===years?' active':''}" onclick="changeYears(${y})">${y}年</button>`
+    '<button class="year-btn' + (y===years?' active':'') + '" onclick="changeYears(' + y + ')">' + y + '年</button>'
   ).join('');
 
-  // 各腿价格行
-  const legRows = legs.map(lg => {
-    const coefStr = lg.coef > 0 ? `×${lg.coef}` : `×(${lg.coef})`;
-    return `<tr>
-      <td style="color:var(--sub)">${lg.label}</td>
-      <td><code style="font-size:12px;color:var(--muted)">${lg.symbol} ${coefStr}</code></td>
-      <td><b>${lg.last_price != null ? lg.last_price.toLocaleString() : '--'}</b></td>
-    </tr>`;
-  }).join('');
+  const legA = legs[0], legB = legs[1];
+  let orderHtml = '';
+  if (legA && legB && (isSell || isBuy)) {
+    const aLabel = isSell ? '卖' : '买';
+    const bLabel = isSell ? '买' : '卖';
+    orderHtml = '<div style="margin-top:10px;padding:9px 14px;background:#fff;border-radius:6px;font-size:14px;font-weight:700;color:' + sigColor + '">'
+      + aLabel + ' ' + legA.label + ' @ ' + (legA.last_price||'--')
+      + ' &nbsp;＋&nbsp; '
+      + bLabel + ' ' + legB.label + ' @ ' + (legB.last_price||'--')
+      + '</div>';
+  }
 
-  document.getElementById('content').innerHTML = `
-    <div class="detail-header">
-      <div class="detail-title">${CATEGORY_ICON[s.category] || ''} ${s.name}</div>
-      <div class="detail-formula">${s.formula || data.formula || ''}</div>
-    </div>
+  let tpSL = '';
+  if (thr.high || thr.low) {
+    tpSL = isSell
+      ? '止盈目标: 差值回至均值 <b>' + mean.toFixed(0) + '</b> &nbsp;|&nbsp; 止损: 差值超过 <b style="color:var(--c-sell)">+' + Math.round((thr.high||0)*1.5) + '</b>'
+      : isBuy
+      ? '止盈目标: 差值回至均值 <b>' + mean.toFixed(0) + '</b> &nbsp;|&nbsp; 止损: 差值低于 <b style="color:var(--c-buy)">' + Math.round((thr.low||0)*1.5) + '</b>'
+      : '阈值参考: 偏高 &ge;+' + (thr.high||'--') + ' &nbsp;|&nbsp; 偏低 &le;' + (thr.low||'--');
+  }
 
-    <!-- ① 操作信号（最重要） -->
-    <div class="signal-box ${sigCls}" style="margin-bottom:16px">
-      <div class="signal-icon">${sigIcon}</div>
-      <div class="signal-text">
-        <div class="signal-action">${sigText}</div>
-        ${desc ? `<div class="signal-desc" style="margin-top:4px">${desc.replace(/\n/g,'<br>')}</div>` : ''}
-      </div>
-    </div>
+  const corrStr = ['1M','3M','1Y','3Y'].filter(k => corr[k] != null)
+    .map(k => '<span style="color:var(--muted)">' + k + '</span> <b>' + corr[k] + '</b>').join('&ensp;');
 
-    <!-- ② 核心指标 4格 -->
-    <div class="metrics-row">
-      <div class="metric-card">
-        <div class="metric-card-label">当前价差</div>
-        <div class="metric-card-value ${valCls}">${curFmt}</div>
-        <div class="metric-card-unit">${s.unit || data.unit || ''}</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-label">历史分位</div>
-        <div class="metric-card-value ${pctCls}">P${pct.toFixed(1)}%</div>
-        <div class="metric-card-unit">越高越偏贵</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-label">Z-Score</div>
-        <div class="metric-card-value ${zCls}">${z >= 0 ? '+' : ''}${z.toFixed(2)}σ</div>
-        <div class="metric-card-unit">偏离均值幅度</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-card-label">均值 / 1σ</div>
-        <div class="metric-card-value val-neu" style="font-size:18px">
-          ${mean.toFixed(0)}
-          <span style="font-size:12px;color:var(--muted)"> ±${std.toFixed(0)}</span>
-        </div>
-        <div class="metric-card-unit">${s.unit || data.unit || ''}</div>
-      </div>
-    </div>
+  const legCards = legs.map(lg =>
+    '<div class="metric-card" style="min-width:100px">'
+    + '<div class="metric-card-label">' + lg.label + '（' + lg.symbol + '）</div>'
+    + '<div class="metric-card-value val-neu" style="font-size:22px">' + (lg.last_price!=null ? Number(lg.last_price).toLocaleString() : '--') + '</div>'
+    + '<div class="metric-card-unit">最新价</div>'
+    + '</div>'
+  ).join('');
 
-    <!-- ③ 分位进度条 -->
-    <div class="pbar-wrap">
-      <div class="pbar-header">
-        <span class="pbar-label">历史分位位置（近${years}年）</span>
-        <span class="pbar-val ${pctCls}">P${pct.toFixed(1)}%</span>
-      </div>
-      <div class="pbar-track">
-        <div class="pbar-fill" style="width:100%"></div>
-        <div class="pbar-dot" style="left:${pbarL}%"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px">
-        <span style="color:var(--c-buy)">偏低/做多</span>
-        <span>中性区间</span>
-        <span style="color:var(--c-sell)">偏高/做空</span>
-      </div>
-    </div>
+  document.getElementById('content').innerHTML =
+    '<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:12px;flex-wrap:wrap">'
+    + '<div style="font-size:20px;font-weight:700">' + (CATEGORY_ICON[s.category]||'') + ' ' + name + '</div>'
+    + '<div style="font-size:12px;color:var(--muted);font-family:monospace">' + formula + '</div>'
+    + '<div style="margin-left:auto;font-size:11px;color:var(--muted)">' + (data.category_name||s.category_name||'') + '</div>'
+    + '</div>'
 
-    <!-- ④ 历史走势图（含布林带） -->
-    <div class="chart-card">
-      <div class="chart-card-header">
-        <div class="chart-card-title">历史价差走势（含布林带 ±2σ）</div>
-        <div class="chart-years">${yearBtns}</div>
-      </div>
-      <div class="chart-body" id="mainChart"></div>
-    </div>
+    + '<div style="background:' + sigBg + ';border:1.5px solid ' + sigBorder + ';border-radius:10px;padding:14px 18px;margin-bottom:14px">'
+    + '<div style="font-size:16px;font-weight:700;color:' + sigColor + ';margin-bottom:4px">' + sigTitle + '</div>'
+    + '<div style="font-size:12px;color:var(--sub);line-height:1.7">' + desc.replace(/\n/g,'<br>') + '</div>'
+    + orderHtml
+    + (tpSL ? '<div style="margin-top:8px;font-size:12px;color:var(--sub)">' + tpSL + '</div>' : '')
+    + '</div>'
 
-    <!-- ⑤ 统计数据表 -->
-    <div class="stats-table">
-      <table>
-        <tr><th colspan="3" style="background:#f0f2f5">价差统计</th></tr>
-        <tr><th>指标</th><th>数值</th><th>说明</th></tr>
-        <tr><td>当前价差</td>
-            <td><b class="${valCls}">${curFmt} ${s.unit||''}</b></td>
-            <td>最新计算值</td></tr>
-        <tr><td>历史分位</td>
-            <td><b class="${pctCls}">P${pct.toFixed(1)}%</b></td>
-            <td>近${years}年分位</td></tr>
-        <tr><td>Z-Score</td>
-            <td><b class="${zCls}">${z>=0?'+':''}${z.toFixed(2)}σ</b></td>
-            <td>|Z|>2 极端值</td></tr>
-        <tr><td>历史均值</td>
-            <td>${mean.toFixed(1)} ${s.unit||''}</td>
-            <td>近${years}年均值</td></tr>
-        <tr><td>标准差</td>
-            <td>±${std.toFixed(1)} ${s.unit||''}</td>
-            <td>波动参考</td></tr>
-        <tr><td>历史最高</td>
-            <td>${stats && stats.max != null ? stats.max.toFixed(0) : '--'} ${s.unit||''}</td>
-            <td>近${years}年</td></tr>
-        <tr><td>历史最低</td>
-            <td>${stats && stats.min != null ? stats.min.toFixed(0) : '--'} ${s.unit||''}</td>
-            <td>近${years}年</td></tr>
-        <tr><td>布林上轨</td>
-            <td>${bbU && bbU.length ? (bbU[bbU.length-1]||0).toFixed(0) : '--'} ${s.unit||''}</td>
-            <td>20日均值+2σ</td></tr>
-        <tr><td>布林下轨</td>
-            <td>${bbL && bbL.length ? (bbL[bbL.length-1]||0).toFixed(0) : '--'} ${s.unit||''}</td>
-            <td>20日均值-2σ</td></tr>
-      </table>
-    </div>
+    + '<div class="metrics-row">'
+    + legCards
+    + '<div class="metric-card" style="min-width:120px;flex:2">'
+    + '<div class="metric-card-label">当前价差</div>'
+    + '<div class="metric-card-value ' + valCls + '" style="font-size:32px">' + curFmt + '</div>'
+    + '<div class="metric-card-unit">' + unit + '</div>'
+    + '</div>'
+    + '<div class="metric-card">'
+    + '<div class="metric-card-label">历史分位</div>'
+    + '<div class="metric-card-value ' + pctCls + '">P' + pct.toFixed(1) + '%</div>'
+    + '<div class="metric-card-unit">近' + years + '年</div>'
+    + '</div>'
+    + '<div class="metric-card">'
+    + '<div class="metric-card-label">Z-Score</div>'
+    + '<div class="metric-card-value ' + zCls + '">' + (z>=0?'+':'') + z.toFixed(2) + 'σ</div>'
+    + '<div class="metric-card-unit">偏离程度</div>'
+    + '</div>'
+    + '</div>'
 
-    <!-- ⑥ 各腿价格 -->
-    ${legRows ? `
-    <div class="stats-table">
-      <table>
-        <tr><th colspan="3" style="background:#f0f2f5">各腿当前价格</th></tr>
-        <tr><th>合约</th><th>规则</th><th>最新价</th></tr>
-        ${legRows}
-      </table>
-    </div>` : ''}
-  `;
+    + '<div class="pbar-wrap">'
+    + '<div class="pbar-header"><span class="pbar-label">历史分位位置（近' + years + '年）</span><span class="pbar-val ' + pctCls + '">P' + pct.toFixed(1) + '%</span></div>'
+    + '<div class="pbar-track"><div class="pbar-fill" style="width:100%"></div><div class="pbar-dot" style="left:' + pbarL + '%"></div></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px"><span style="color:var(--c-buy)">偏低/做多</span><span>中性</span><span style="color:var(--c-sell)">偏高/做空</span></div>'
+    + '</div>'
 
-  // ── 渲染图表 ──
+    + '<div style="display:flex;flex-wrap:wrap;gap:12px;margin-bottom:14px">'
+    + '<div class="metric-card" style="flex:1;min-width:130px"><div class="metric-card-label">均值 / 1σ</div>'
+    + '<div class="metric-card-value val-neu" style="font-size:18px">' + mean.toFixed(0) + ' <span style="font-size:12px;color:var(--muted)">±' + std.toFixed(0) + '</span></div>'
+    + '<div class="metric-card-unit">' + unit + '</div></div>'
+    + '<div class="metric-card" style="flex:1;min-width:130px"><div class="metric-card-label">近' + years + '年最高/最低</div>'
+    + '<div style="font-size:16px;font-weight:700;line-height:1.4"><span style="color:var(--c-sell)">' + (stats&&stats.max!=null?stats.max.toFixed(0):'--') + '</span>'
+    + '<span style="color:var(--muted);font-size:12px"> / </span><span style="color:var(--c-buy)">' + (stats&&stats.min!=null?stats.min.toFixed(0):'--') + '</span></div>'
+    + '<div class="metric-card-unit">' + unit + '</div></div>'
+    + '<div class="metric-card" style="flex:1;min-width:130px"><div class="metric-card-label">布林上/下轨（20日±2σ）</div>'
+    + '<div style="font-size:16px;font-weight:700;line-height:1.4"><span style="color:var(--c-sell)">' + (bbU.length?(bbU[bbU.length-1]||0).toFixed(0):'--') + '</span>'
+    + '<span style="color:var(--muted);font-size:12px"> / </span><span style="color:var(--c-buy)">' + (bbL.length?(bbL[bbL.length-1]||0).toFixed(0):'--') + '</span></div>'
+    + '<div class="metric-card-unit">' + unit + '</div></div>'
+    + (corrStr ? '<div class="metric-card" style="flex:1;min-width:150px"><div class="metric-card-label">两腿相关性</div><div style="font-size:13px;line-height:2.2">' + corrStr + '</div></div>' : '')
+    + '</div>'
+
+    + '<div class="chart-card">'
+    + '<div class="chart-card-header"><div class="chart-card-title">历史价差走势（含均值 / 布林带 ±2σ / 阈值线）</div><div class="chart-years">' + yearBtns + '</div></div>'
+    + '<div class="chart-body" id="mainChart"></div>'
+    + '</div>'
+
+    + '<div class="stats-table"><table>'
+    + '<tr><th colspan="3" style="background:#f4f6f8;font-size:12px">策略统计</th></tr>'
+    + '<tr><th>指标</th><th>数值</th><th>说明</th></tr>'
+    + '<tr><td>当前价差</td><td><b class="' + valCls + '">' + curFmt + ' ' + unit + '</b></td><td>最新计算值</td></tr>'
+    + '<tr><td>历史分位</td><td><b class="' + pctCls + '">P' + pct.toFixed(1) + '%</b></td><td>近' + years + '年，>P80偏高 &lt;P20偏低</td></tr>'
+    + '<tr><td>Z-Score</td><td><b class="' + zCls + '">' + (z>=0?'+':'') + z.toFixed(2) + 'σ</b></td><td>|Z|>2为极端值</td></tr>'
+    + '<tr><td>历史均值</td><td>' + mean.toFixed(1) + ' ' + unit + '</td><td>近' + years + '年均值</td></tr>'
+    + '<tr><td>标准差</td><td>±' + std.toFixed(1) + ' ' + unit + '</td><td>1σ波动</td></tr>'
+    + '<tr><td>历史最高</td><td style="color:var(--c-sell)">' + (stats&&stats.max!=null?stats.max.toFixed(0):'--') + ' ' + unit + '</td><td>近' + years + '年极值</td></tr>'
+    + '<tr><td>历史最低</td><td style="color:var(--c-buy)">' + (stats&&stats.min!=null?stats.min.toFixed(0):'--') + ' ' + unit + '</td><td>近' + years + '年极值</td></tr>'
+    + (thr.high ? '<tr><td>偏高阈值</td><td>&ge; +' + thr.high + ' ' + unit + '</td><td>触发做空信号</td></tr>' : '')
+    + (thr.low  ? '<tr><td>偏低阈值</td><td>&le; ' + thr.low + ' ' + unit + '</td><td>触发做多信号</td></tr>' : '')
+    + '</table></div>';
+
   if (dates && spreads && dates.length > 0) {
     if (currentChart) { currentChart.dispose(); currentChart = null; }
     currentChart = echarts.init(document.getElementById('mainChart'));
-
-    const series = [
-      {
-        name: '价差', type: 'line', data: spreads, symbol: 'none', z: 3,
-        lineStyle: { color: C.line, width: 2 },
-        areaStyle: { color: { type:'linear', x:0, y:0, x2:0, y2:1,
-          colorStops: [{offset:0,color:'rgba(59,108,244,.18)'},{offset:1,color:'rgba(59,108,244,0)'}] }}
-      },
-      {
-        name: '均值', type: 'line', symbol: 'none', z: 1,
+    const seriesList = [
+      { name:'价差', type:'line', data:spreads, symbol:'none', z:3,
+        lineStyle:{color:C.line,width:2},
+        areaStyle:{color:{type:'linear',x:0,y:0,x2:0,y2:1,
+          colorStops:[{offset:0,color:'rgba(59,108,244,.15)'},{offset:1,color:'rgba(59,108,244,0)'}]}} },
+      { name:'均值', type:'line', symbol:'none', z:1,
         data: new Array(dates.length).fill(mean),
-        lineStyle: { color: C.muted, width: 1, type:'dashed' }
-      },
+        lineStyle:{color:C.muted,width:1,type:'dashed'} },
     ];
-
-    // 布林带
-    if (bbU && bbU.length === dates.length) {
-      series.push({
-        name: '布林上轨', type:'line', symbol:'none', z: 1,
-        data: bbU,
-        lineStyle: { color: C.sell, width: 1, type:'dotted', opacity: .7 }
-      });
-      series.push({
-        name: '布林下轨', type:'line', symbol:'none', z: 1,
-        data: bbL,
-        lineStyle: { color: C.buy, width: 1, type:'dotted', opacity: .7 }
-      });
+    if (bbU.length === dates.length) {
+      seriesList.push({name:'布林上轨',type:'line',symbol:'none',z:1,data:bbU,lineStyle:{color:C.sell,width:1,type:'dotted'}});
+      seriesList.push({name:'布林下轨',type:'line',symbol:'none',z:1,data:bbL,lineStyle:{color:C.buy, width:1,type:'dotted'}});
     }
+    if (thr.high) seriesList.push({name:'偏高阈值',type:'line',symbol:'none',z:2,
+      data:new Array(dates.length).fill(thr.high), lineStyle:{color:C.sell,width:1.5,type:'dotted',opacity:.8}});
+    if (thr.low) seriesList.push({name:'偏低阈值',type:'line',symbol:'none',z:2,
+      data:new Array(dates.length).fill(thr.low), lineStyle:{color:C.buy,width:1.5,type:'dotted',opacity:.8}});
 
     currentChart.setOption({
-      backgroundColor: 'transparent',
-      legend: { data: ['价差','均值','布林上轨','布林下轨'], textStyle:{fontSize:10,color:C.muted},
-                top: 4, right: 80, icon: 'roundRect', itemWidth:14, itemHeight:4 },
-      grid: { left: 52, right: 16, top: 32, bottom: 36 },
-      tooltip: {
-        trigger: 'axis', textStyle: { fontSize: 12 },
-        backgroundColor: '#fff', borderColor: '#e8ecf2',
-        extraCssText: 'box-shadow:0 2px 10px rgba(0,0,0,.1)',
+      backgroundColor:'transparent',
+      legend:{data:['价差','均值','布林上轨','布林下轨','偏高阈值','偏低阈值'],
+              textStyle:{fontSize:10,color:C.muted},top:4,right:8,icon:'roundRect',itemWidth:14,itemHeight:4},
+      grid:{left:52,right:16,top:34,bottom:36},
+      tooltip:{trigger:'axis',textStyle:{fontSize:12},backgroundColor:'#fff',borderColor:'#e8ecf2',
+        extraCssText:'box-shadow:0 2px 10px rgba(0,0,0,.1)',
         formatter: params => {
-          let html = `<b>${params[0]?.axisValue}</b><br/>`;
-          params.forEach(p => {
-            if (p.value != null)
-              html += `${p.marker}${p.seriesName}: <b>${Number(p.value).toFixed(0)}</b><br/>`;
-          });
-          return html;
-        }
-      },
-      xAxis: {
-        type: 'category', data: dates,
-        axisLabel: { fontSize: 10, color: C.muted,
-          interval: Math.floor(dates.length / 5),
-          formatter: v => v ? v.slice(2,7) : '' },
-        axisLine: { lineStyle: { color: '#e8ecf2' } }, splitLine: { show: false }
-      },
-      yAxis: {
-        type: 'value', scale: true,
-        axisLabel: { fontSize: 10, color: C.muted,
-          formatter: v => Math.abs(v)>=1000 ? (v/1000).toFixed(1)+'k' : v },
-        splitLine: { lineStyle: { color: '#f1f5f9', type:'dashed' } }
-      },
-      series
+          let h = '<b>' + (params[0]&&params[0].axisValue||'') + '</b><br/>';
+          params.forEach(p => { if(p.value!=null) h += p.marker + p.seriesName + ': <b>' + Number(p.value).toFixed(0) + '</b><br/>'; });
+          return h;
+        }},
+      xAxis:{type:'category',data:dates,
+        axisLabel:{fontSize:10,color:C.muted,interval:Math.floor(dates.length/5),formatter:v=>v?v.slice(2,7):''},
+        axisLine:{lineStyle:{color:'#e8ecf2'}},splitLine:{show:false}},
+      yAxis:{type:'value',scale:true,
+        axisLabel:{fontSize:10,color:C.muted,formatter:v=>Math.abs(v)>=1000?(v/1000).toFixed(1)+'k':v},
+        splitLine:{lineStyle:{color:'#f1f5f9',type:'dashed'}}},
+      series: seriesList
     });
     window.addEventListener('resize', () => { if(currentChart) currentChart.resize(); });
   }
 }
+
 
 // ────────────────────────────────────────────
 // 跨期价差详情

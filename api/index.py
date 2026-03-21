@@ -1080,6 +1080,23 @@ def get_spread(
             "last_price": last_price,
         })
 
+    # 相关性（仅双腿策略）
+    corr = {}
+    if len(legs) == 2:
+        sym_a, sym_b = legs[0]["symbol"], legs[1]["symbol"]
+        df_a, df_b = dfs.get(sym_a), dfs.get(sym_b)
+        if df_a is not None and df_b is not None:
+            merged_corr = pd.merge(
+                df_a[["date","close"]].rename(columns={"close":"ca"}),
+                df_b[["date","close"]].rename(columns={"close":"cb"}),
+                on="date", how="inner"
+            )
+            today = pd.Timestamp.today().normalize()
+            for label, days in [("1M",21),("3M",63),("1Y",252),("3Y",756)]:
+                sub = merged_corr[merged_corr["date"] >= today - pd.Timedelta(days=days)]
+                if len(sub) >= 5:
+                    corr[label] = round(float(sub["ca"].corr(sub["cb"])), 3)
+
     return {
         "id": id,
         "name": strategy["name"],
@@ -1090,8 +1107,12 @@ def get_spread(
         "spreads": spreads,
         "stats": stats_dict,
         "legs": leg_prices,
+        "corr": corr,
+        "signal_thresholds": strategy.get("signal_thresholds", {}),
+        "normal_range": strategy.get("normal_range", None),
         "description": strategy.get("description", ""),
         "category": strategy.get("category", ""),
+        "category_name": strategy.get("category_name", ""),
     }
 
 
