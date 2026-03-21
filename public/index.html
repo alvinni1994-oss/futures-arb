@@ -310,9 +310,9 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
   <div class="strat-toggle">
     <div class="strat-hdr" onclick="toggleStrat()">
       <span>📋 策略指引 · 报价公式 · 信号阈值 · 止盈止损参考 · 风险提示</span>
-      <span id="strat-arrow">▼</span>
+      <span id="strat-arrow">▲</span>
     </div>
-    <div class="strat-body" id="strat-body">
+    <div class="strat-body open" id="strat-body">
       <div class="strat-grid">
         <div class="strat-block">
           <h4>📐 核心公式</h4>
@@ -356,10 +356,14 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
   <div class="two-col">
     <!-- 阈值设置 -->
     <div class="panel">
-      <div class="panel-h">
+      <div class="panel-h" style="cursor:pointer" onclick="togglePanel('thresh-body','thresh-arrow')">
         <span><span class="ph-icon">⚙️</span>自定义阈值</span>
-        <button class="save-btn" onclick="saveThresh()">💾 保存应用</button>
+        <span style="display:flex;align-items:center;gap:8px">
+          <button class="save-btn" onclick="event.stopPropagation();saveThresh()">💾 保存应用</button>
+          <span id="thresh-arrow" style="color:var(--t3);font-size:.8rem">▼</span>
+        </span>
       </div>
+      <div id="thresh-body" style="display:none">
       <div class="thresh-sec">▶ 主要：价差阈值（元/吨）</div>
       <div class="thresh-grid">
         <div class="thresh-item">
@@ -406,11 +410,16 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
           <div class="thresh-hint">Z达此值触发通知</div>
         </div>
       </div>
+      </div><!-- /thresh-body -->
     </div>
 
     <!-- 提醒设置 -->
     <div class="panel">
-      <div class="panel-h"><span><span class="ph-icon">🔔</span>提醒设置</span></div>
+      <div class="panel-h" style="cursor:pointer" onclick="togglePanel('alert-body','alert-arrow')">
+        <span><span class="ph-icon">🔔</span>提醒设置</span>
+        <span id="alert-arrow" style="color:var(--t3);font-size:.8rem">▼</span>
+      </div>
+      <div id="alert-body" style="display:none">
 
       <!-- 提醒逻辑说明 -->
       <div style="background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:.72rem;color:var(--t2);line-height:1.7">
@@ -468,6 +477,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
         <div class="status-line" id="email-status">未启用</div>
         <div class="status-line" id="email-cfg-hint" style="margin-top:4px;color:var(--orange);display:none"></div>
       </div>
+      </div><!-- /alert-body -->
     </div>
   </div>
 
@@ -854,6 +864,12 @@ function toggleStrat(){
   const b=document.getElementById("strat-body"),a=document.getElementById("strat-arrow");
   b.classList.toggle("open"); a.textContent=b.classList.contains("open")?"▲":"▼";
 }
+function togglePanel(bodyId, arrowId){
+  const b=document.getElementById(bodyId), a=document.getElementById(arrowId);
+  const open=b.style.display==="none";
+  b.style.display=open?"block":"none";
+  a.textContent=open?"▲":"▼";
+}
 
 // ===== 加载 =====
 function showOv(t){document.getElementById("ov").classList.remove("hide");document.getElementById("ovt").textContent=t}
@@ -1095,7 +1111,7 @@ function render(){
   if(!pc_c) pc_c=echarts.init(document.getElementById("pc"));
   pc_c.setOption({
     backgroundColor:"#fff",
-    grid:{left:isMobile?52:56, right:isMobile?52:65, top:30, bottom:isMobile?28:28},
+    grid:{left:isMobile?52:65, right:isMobile?12:16, top:30, bottom:isMobile?28:28},
     tooltip:{trigger:"axis",backgroundColor:"#fff",borderColor:"#dde1e7",textStyle:{color:"#1a1d23",fontSize:11}},
     legend:{top:4, left:"center", orient:"horizontal",
       textStyle:{color:"#4a5568",fontSize:9},itemWidth:12,itemHeight:7,itemGap:12},
