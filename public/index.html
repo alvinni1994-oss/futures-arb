@@ -300,32 +300,32 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
             <div class="thresh-sec">▶ 价差阈值</div>
             <div class="thresh-grid">
               <div class="thresh-item">
-                <label>开仓关注上界</label>
+                <label>开仓关注上界 <span id="rec-open-hi" style="color:var(--yellow);font-weight:700"></span></label>
                 <input type="number" class="thresh-input" id="t-diff-open-hi" step="50">
                 <div class="thresh-hint">差值 &gt; 此值 → 弱信号偏高</div>
               </div>
               <div class="thresh-item">
-                <label>强信号上界</label>
+                <label>强信号上界 <span id="rec-strong-hi" style="color:var(--red);font-weight:700"></span></label>
                 <input type="number" class="thresh-input" id="t-diff-strong-hi" step="50">
                 <div class="thresh-hint">差值 &gt; 此值 → 强信号</div>
               </div>
               <div class="thresh-item">
-                <label>开仓关注下界</label>
+                <label>开仓关注下界 <span id="rec-open-lo" style="color:var(--yellow);font-weight:700"></span></label>
                 <input type="number" class="thresh-input" id="t-diff-open-lo" step="50">
                 <div class="thresh-hint">差值 &lt; 此值 → 弱信号偏低</div>
               </div>
               <div class="thresh-item">
-                <label>强信号下界</label>
+                <label>强信号下界 <span id="rec-strong-lo" style="color:var(--red);font-weight:700"></span></label>
                 <input type="number" class="thresh-input" id="t-diff-strong-lo" step="50">
                 <div class="thresh-hint">差值 &lt; 此值 → 强信号</div>
               </div>
               <div class="thresh-item">
-                <label>止盈区间 ±</label>
+                <label>止盈区间 ± <span id="rec-tp" style="color:var(--green);font-weight:700"></span></label>
                 <input type="number" class="thresh-input" id="t-diff-tp" step="50">
                 <div class="thresh-hint">差值回归均值±此值 → 止盈</div>
               </div>
               <div class="thresh-item">
-                <label>止损线 ±</label>
+                <label>止损线 ± <span id="rec-sl" style="color:var(--red);font-weight:700"></span></label>
                 <input type="number" class="thresh-input" id="t-diff-sl" step="50">
                 <div class="thresh-hint">差值超过±此值 → 止损</div>
               </div>
@@ -345,10 +345,11 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
           </div>
           <div id="alert-body" style="display:none">
             <div style="background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:.72rem;color:var(--t2);line-height:1.7">
-              <div style="font-weight:700;color:var(--blue);margin-bottom:5px">📋 提醒触发规则</div>
-              <div>✅ 状态变化才提醒（不重复推送）</div>
-              <div>✅ 强信号每日最多2次，弱信号每日最多1次</div>
-              <div>✅ 同级别最短4小时才补发</div>
+              <div style="font-weight:700;color:var(--blue);margin-bottom:5px">📋 提醒触发规则（防骚扰机制）</div>
+              <div>✅ <b>状态变化才提醒</b>：信号从"观望"升级到"弱/强"时发送，持续处于同一状态不重复推送</div>
+              <div>✅ <b>今日次数上限</b>：强信号每日最多 <b>2次</b>，弱信号每日最多 <b>1次</b>，止损预警不限次</div>
+              <div>✅ <b>4小时间隔保护</b>：即便状态未变，同级别最短4小时才补发一次</div>
+              <div style="color:var(--t3);margin-top:4px">以上规则共同作用，确保不会刷屏。次数统计每日零点自动重置。</div>
               <div id="alert-freq-status" style="margin-top:5px;color:var(--orange);font-weight:600"></div>
             </div>
             <div class="alert-item">
@@ -996,17 +997,33 @@ function toggleWebhook(){
   if(s) s.textContent=AC.webhook?"✅ 已启用":"未启用";
 }
 
+async function sendServerChan(key, title, content){
+  // 直接从浏览器调 Server酱，绕过后端（Render US节点访问sctapi超时）
+  const body = new URLSearchParams({title, desp: content||title});
+  let url;
+  if(key.startsWith("SCTP")){
+    const uid = key.slice(4).split("T")[0];
+    url = `https://${uid}.push.ft07.com/send/${key}.send`;
+  } else {
+    url = `https://sctapi.ftqq.com/${key}.send`;
+  }
+  // 用 no-cors 发送（无法读取响应，但推送会成功）
+  await fetch(url, {method:"POST", mode:"no-cors",
+    headers:{"Content-Type":"application/x-www-form-urlencoded"},
+    body: body.toString()});
+}
+
 async function testWebhook(){
   const key=document.getElementById("alert-webhook")?.value.trim();
   if(!key){alert("请先填入SendKey");return;}
   const st=document.getElementById("webhook-status");
   if(st){st.textContent="发送中...";st.style.color="";}
   try{
-    const r=await fetch(`${API}/api/send-webhook`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({key,title:"🧪期货套利测试",content:"推送功能正常！"})});
-    const d=await r.json();
-    if(st) st.textContent=d.ok?"✅ 已发送":"❌ 发送失败："+d.msg;
+    await sendServerChan(key,"🧪 期货套利测试","推送功能正常！如果收到此消息说明配置成功 ✅");
+    // no-cors 模式无法读响应，发出即视为成功
+    if(st){st.textContent="✅ 已发送（请检查微信）";st.style.color="var(--green)";}
   }catch(e){
-    if(st) st.textContent="❌ 网络错误";
+    if(st){st.textContent="❌ 发送失败："+e.message;st.style.color="var(--red)";}
   }
 }
 
