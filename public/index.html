@@ -110,8 +110,11 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 .thresh-input{background:#fff;border:1px solid var(--bd2);color:var(--t);padding:5px 8px;border-radius:5px;font-size:.8rem;width:90px;text-align:center;font-weight:600}
 .thresh-input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-bg)}
 .thresh-hint{font-size:.62rem;color:var(--t3);margin-top:2px}
-.save-btn{padding:6px 14px;background:var(--blue);border:none;border-radius:6px;color:#fff;font-size:.75rem;cursor:pointer;font-weight:600;transition:background .15s}
+.save-btn{padding:6px 14px;background:var(--blue);border:none;border-radius:6px;color:#fff;font-size:.75rem;cursor:pointer;font-weight:600;transition:all .2s}
 .save-btn:hover{background:#1558b0}
+.save-btn.saving{background:#ca8a04;pointer-events:none}
+.save-btn.saved{background:#16a34a;pointer-events:none}
+.save-btn.failed{background:#dc2626}
 
 /* 提醒设置 */
 .alert-item{margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--bg4)}
@@ -559,16 +562,23 @@ async function saveThresh(){
     strong:+document.getElementById("t-strong").value||2.0,
   };
   localStorage.setItem("brnr_v6_thresh",JSON.stringify(T));
-  // 同步到服务器
-  try{
-    const ac=AC.webhookKey?{webhookKey:AC.webhookKey,webhook:AC.webhook,email:AC.email,emails:AC.emails}:{};
-    await fetch(API+"/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({key:"default",thresh:T,alert:ac})});
-  }catch(e){}
   if(D) renderDecision(D);
   updateStratText();
   const btn=document.querySelector('.save-btn');
-  btn.textContent="✅ 已保存（已同步）"; setTimeout(()=>btn.textContent="💾 保存应用",2000);
+  btn.className="save-btn saving"; btn.textContent="⏳ 同步中...";
+  try{
+    const ac=AC.webhookKey?{webhookKey:AC.webhookKey,webhook:AC.webhook,email:AC.email,emails:AC.emails}:{};
+    const sr=await fetch(API+"/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({key:"default",thresh:T,alert:ac})});
+    if(sr.ok){
+      btn.className="save-btn saved"; btn.textContent="✅ 已保存并同步";
+    } else {
+      btn.className="save-btn saved"; btn.textContent="✅ 已保存（本地）";
+    }
+  }catch(e){
+    btn.className="save-btn saved"; btn.textContent="✅ 已保存（本地）";
+  }
+  setTimeout(()=>{btn.className="save-btn";btn.textContent="💾 保存应用";},2500);
 }
 
 function saveAlertCfg(){
