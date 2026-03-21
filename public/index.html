@@ -197,7 +197,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 </style>
 </head>
 <body>
-<div class="ov" id="ov"><div class="sp"></div><div class="ov-t" id="ovt">正在拉取 BR/NR 主力合约实时数据...</div></div>
+<div class="ov hide" id="ov"><div class="sp"></div><div class="ov-t" id="ovt">正在拉取 BR/NR 主力合约实时数据...</div></div>
 
 <!-- Header -->
 <div class="hdr">
@@ -875,6 +875,7 @@ async function loadPair(silent=false){
     window._lastData = D;
     _loadRetry=0;
     render();
+    hideOv();
     hideToast();
     document.getElementById("lupd").textContent=new Date().toLocaleTimeString("zh-CN");
     document.getElementById("rt-dot").style.background=D.realtime?"#16a34a":"#ca8a04";
