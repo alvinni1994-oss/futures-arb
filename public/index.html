@@ -555,6 +555,66 @@ function renderAll(d) {
   renderStats(d);
 }
 
+// 生成操作指令（带实时价格）
+function buildOpText(id, d, signal) {
+  const lp = d.leg_prices || {};
+  const actions = TRADE_ACTIONS[id];
+  if(!actions || signal === 'neutral' || signal === 'wait') return '—';
+  const isHi = (signal === 'strong_hi' || signal === 'weak_hi');
+  const actionStr = isHi ? (actions.hi || '—') : (actions.lo || '—');
+  let result = actionStr;
+  const legs = d.legs || [];
+  for(const sym of legs) {
+    const price = lp[sym];
+    if(price != null) {
+      result = result.replace(new RegExp(`\\b${sym}\\b`), `${sym} @ ${Math.round(price).toLocaleString()}`);
+    }
+  }
+  return result;
+}
+
+// 副标题：显示价差数值 + 百分位 + 操作建议
+function buildSubText(id, d, signal) {
+  const stats = d.stats || {};
+  const cur = stats.cur;
+  const pct = stats.pct;
+  const unit = d.unit || '元/吨';
+  const name = d.name || id;
+  const curStr = cur >= 0 ? `+${Math.round(cur).toLocaleString()}` : Math.round(cur).toLocaleString();
+  const pctStr = pct != null ? `历史P${pct.toFixed(1)}%` : '';
+  const legs = d.legs || [];
+  const legA = legs[0] || '';
+  const legB = legs[1] || '';
+  let conclusion = '';
+  if(d.category === 'processing') {
+    if(signal === 'strong_hi') conclusion = `加工费极度偏高，强烈关注套利机会`;
+    else if(signal === 'weak_hi') conclusion = `加工费偏高，关注套利机会`;
+    else if(signal === 'strong_lo') conclusion = `加工费极度偏低，谨慎操作`;
+    else if(signal === 'weak_lo') conclusion = `加工费偏低，暂时观望`;
+    else conclusion = '加工费处于正常区间，暂时观望';
+  } else if(d.category === 'equity_index') {
+    if(signal === 'strong_hi') conclusion = `${legA}极度溢价，强烈关注空${legA}多${legB}`;
+    else if(signal === 'weak_hi') conclusion = `${legA}溢价偏高，关注空${legA}多${legB}`;
+    else if(signal === 'strong_lo') conclusion = `${legB}极度溢价，强烈关注多${legA}空${legB}`;
+    else if(signal === 'weak_lo') conclusion = `${legB}溢价偏高，关注多${legA}空${legB}`;
+    else conclusion = '股指价差处于正常区间，暂时观望';
+  } else {
+    if(signal === 'strong_hi') conclusion = `${legA}极度偏贵，强烈关注做空${legA}`;
+    else if(signal === 'weak_hi') conclusion = `${legA}偏贵，关注做空${legA}`;
+    else if(signal === 'strong_lo') conclusion = `${legB}极度偏贵，强烈关注做多${legA}`;
+    else if(signal === 'weak_lo') conclusion = `${legB}偏贵，关注做多${legA}`;
+    else conclusion = '价差处于正常区间，暂时观望';
+  }
+  const nameParts = name.split('/');
+  const nameA = nameParts[0] || legA;
+  const nameB = nameParts[1] || legB;
+  const parts = [];
+  if(cur != null) parts.push(`${nameA}-${nameB}价差=${curStr}${unit}`);
+  if(pctStr) parts.push(`(${pctStr})`);
+  parts.push(conclusion);
+  return parts.join('，').replace('，(', ' (');
+}
+
 function renderSignal(d) {
   const T = STRATEGY_CONFIG[currentId] || {};
   const spread = d.stats.cur;
@@ -574,7 +634,9 @@ function renderSignal(d) {
   const tpHi = mean + T.tp;
   const tpLo = mean - T.tp;
 
+  let signal = 'wait';
   if (spread >= T.sl || spread <= -T.sl) {
+    signal = 'stop';
     bar.className = "dc-signal-bar stop";
     badge.className = "dc-badge badge-stop"; badge.textContent = "🛑 止损预警";
     icon.textContent = "🛑";
@@ -582,42 +644,47 @@ function renderSignal(d) {
     opEl.style.color = "var(--red)"; opEl.textContent = "建议止损出场，立即核查持仓";
     tpEl.textContent = "—"; slEl.style.color = "var(--red)"; slEl.textContent = `已触发 ±${T.sl}${unit}`;
   } else if (spread >= T.strongHi) {
+    signal = 'strong_hi';
     bar.className = "dc-signal-bar sell";
     badge.className = "dc-badge badge-sell"; badge.textContent = "🔥 强信号：价差偏高";
     icon.textContent = "🔥";
-    sub.textContent = `价差=+${spread.toFixed(0)}${unit}（历史P${dpct.toFixed(1)}%），价差极高，可关注做空价差`;
-    opEl.style.color = "var(--red)"; opEl.innerHTML = `<b>价差偏高：做空${legs[0]}、做多${legs[1]}</b>`;
+    sub.textContent = buildSubText(currentId, d, signal);
+    opEl.style.color = "var(--red)"; opEl.innerHTML = `<b>${buildOpText(currentId, d, signal)}</b>`;
     tpEl.style.color = "var(--t3)"; tpEl.textContent = `差值回至 ${tpHi.toFixed(0)}~${tpLo.toFixed(0)}${unit}`;
     slEl.style.color = "var(--red)"; slEl.textContent = `超过 +${T.sl}${unit}`;
   } else if (spread <= T.strongLo) {
+    signal = 'strong_lo';
     bar.className = "dc-signal-bar buy";
     badge.className = "dc-badge badge-buy"; badge.textContent = "🔥 强信号：价差偏低";
     icon.textContent = "🔥";
-    sub.textContent = `价差=${spread.toFixed(0)}${unit}（历史P${dpct.toFixed(1)}%），价差极低，可关注做多价差`;
-    opEl.style.color = "var(--green)"; opEl.innerHTML = `<b>价差偏低：做多${legs[0]}、做空${legs[1]}</b>`;
+    sub.textContent = buildSubText(currentId, d, signal);
+    opEl.style.color = "var(--green)"; opEl.innerHTML = `<b>${buildOpText(currentId, d, signal)}</b>`;
     tpEl.style.color = "var(--t3)"; tpEl.textContent = `差值回至 ${tpLo.toFixed(0)}~${tpHi.toFixed(0)}${unit}`;
     slEl.style.color = "var(--red)"; slEl.textContent = `低于 ${-T.sl}${unit}`;
   } else if (spread >= T.openHi) {
+    signal = 'weak_hi';
     bar.className = "dc-signal-bar sell";
     badge.className = "dc-badge badge-sell"; badge.textContent = "⚠️ 弱信号：关注做空价差";
     icon.textContent = "⚠️";
-    sub.textContent = `价差=+${spread.toFixed(0)}${unit}（${T.openHi}~${T.strongHi}区间），弱信号，可小仓关注`;
-    opEl.style.color = "var(--orange)"; opEl.textContent = `可小仓：做空${legs[0]}、做多${legs[1]}`;
+    sub.textContent = buildSubText(currentId, d, signal);
+    opEl.style.color = "var(--orange)"; opEl.textContent = buildOpText(currentId, d, signal);
     tpEl.style.color = "var(--t3)"; tpEl.textContent = `差值回至 +${tpHi.toFixed(0)}${unit}以内`;
     slEl.style.color = "var(--red)"; slEl.textContent = `+${T.sl}${unit}以上`;
   } else if (spread <= T.openLo) {
+    signal = 'weak_lo';
     bar.className = "dc-signal-bar buy";
     badge.className = "dc-badge badge-buy"; badge.textContent = "⚠️ 弱信号：关注做多价差";
     icon.textContent = "⚠️";
-    sub.textContent = `价差=${spread.toFixed(0)}${unit}（${T.openLo}~${T.strongLo}区间），弱信号`;
-    opEl.style.color = "var(--green)"; opEl.textContent = `可小仓：做多${legs[0]}、做空${legs[1]}`;
+    sub.textContent = buildSubText(currentId, d, signal);
+    opEl.style.color = "var(--green)"; opEl.textContent = buildOpText(currentId, d, signal);
     tpEl.style.color = "var(--t3)"; tpEl.textContent = `差值回至 ${tpLo.toFixed(0)}${unit}以上`;
     slEl.style.color = "var(--red)"; slEl.textContent = `${-T.sl}${unit}以下`;
   } else {
+    signal = 'wait';
     bar.className = "dc-signal-bar wait";
     badge.className = "dc-badge badge-wait"; badge.textContent = "📊 观望";
     icon.textContent = "📊";
-    sub.textContent = `价差=${spread >= 0 ? "+" : ""}${spread.toFixed(0)}${unit}，处于正常区间（${T.openLo}~+${T.openHi}${unit}），暂无开仓信号`;
+    sub.textContent = buildSubText(currentId, d, signal);
     opEl.style.color = "var(--t3)"; opEl.textContent = "暂无操作，持续监控中";
     tpEl.textContent = "—"; slEl.textContent = "—";
   }
@@ -764,7 +831,9 @@ function renderCharts(d) {
   const unit = d.unit || "";
   const legsData = d.legs_data || {};
 
-  document.getElementById("mct").textContent = `价差走势（${yrs}年）· 布林带`;
+  const yrsLabel = yrs === 1 ? '1年' : yrs === 2 ? '2年' : yrs === 3 ? '3年' : `${yrs}年`;
+  const titleText = `${d.name || currentId} 价差（${d.unit || ''}）走势（${yrsLabel}）· 均值 / P95 / P5 / 布林带`;
+  document.getElementById("mct").textContent = titleText;
 
   if (!mc_c) mc_c = echarts.init(document.getElementById("mc"));
   mc_c.setOption({
@@ -911,8 +980,27 @@ function togglePanel(bodyId, arrowId) {
 }
 
 // ── 阈值面板 ──
+// 原始默认配置（不受用户修改影响，用于显示推荐值）
+const STRATEGY_CONFIG_DEFAULT = {};
+(function() {
+  const src = {
+    br_nr:     { openHi:1500, strongHi:2500, openLo:-800,  strongLo:-1500, tp:500,  sl:4500 },
+    im_ic:     { openHi:500,  strongHi:800,  openLo:-200,  strongLo:-400,  tp:150,  sl:1200 },
+    ta_px:     { openHi:200,  strongHi:400,  openLo:-100,  strongLo:-200,  tp:100,  sl:600  },
+    pr_bottle: { openHi:1200, strongHi:1500, openLo:500,   strongLo:300,   tp:200,  sl:800  },
+    pr_pf:     { openHi:1500, strongHi:2000, openLo:500,   strongLo:300,   tp:300,  sl:2500 },
+    l_pp:      { openHi:300,  strongHi:500,  openLo:-300,  strongLo:-500,  tp:100,  sl:700  },
+    rm_oi:     { openHi:500,  strongHi:800,  openLo:-200,  strongLo:-400,  tp:150,  sl:1000 },
+    m_rm:      { openHi:200,  strongHi:350,  openLo:-200,  strongLo:-350,  tp:80,   sl:500  },
+    rm_c:      { openHi:300,  strongHi:500,  openLo:100,   strongLo:-50,   tp:100,  sl:700  },
+    lu_fu:     { openHi:300,  strongHi:500,  openLo:-300,  strongLo:-500,  tp:100,  sl:700  },
+  };
+  Object.assign(STRATEGY_CONFIG_DEFAULT, src);
+})();
+
 function syncThreshInputs() {
   const T = STRATEGY_CONFIG[currentId] || {};
+  const TD = STRATEGY_CONFIG_DEFAULT[currentId] || {};
   const setVal = (id, val) => { const el=document.getElementById(id); if(el&&val!=null) el.value=val; };
   setVal("t-diff-open-hi",  T.openHi);
   setVal("t-diff-strong-hi", T.strongHi);
@@ -920,6 +1008,17 @@ function syncThreshInputs() {
   setVal("t-diff-strong-lo", T.strongLo);
   setVal("t-diff-tp",       T.tp);
   setVal("t-diff-sl",       T.sl);
+  // 显示推荐值（来自原始默认配置，不受用户修改影响）
+  const setRec = (id, val) => {
+    const el = document.getElementById(id);
+    if(el) el.textContent = val != null ? `[推荐 ${val}]` : '';
+  };
+  setRec('rec-open-hi',   TD.openHi);
+  setRec('rec-strong-hi', TD.strongHi);
+  setRec('rec-open-lo',   TD.openLo);
+  setRec('rec-strong-lo', TD.strongLo);
+  setRec('rec-tp',        TD.tp);
+  setRec('rec-sl',        TD.sl);
 }
 
 async function saveThresh() {
