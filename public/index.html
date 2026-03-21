@@ -455,16 +455,17 @@ const STRATEGY_NAME = {
 };
 
 const STRATEGY_META = {
-  br_nr:     { tags:["跨品种","价差套利","中风险"], ratio:"2手BR : 1手NR", risk:"中", logic:"合成橡胶(BR)与天然橡胶(NR)互为轮胎配方替代品，比价回归是核心逻辑" },
-  im_ic:     { tags:["股指","跨品种","低风险"],   ratio:"1手IM : 1手IC",  risk:"低", logic:"IM(中证1000)与IC(中证500)均为小盘股指，流动性差异产生溢价机会" },
-  ta_px:     { tags:["加工费","PX","中风险"],     ratio:"PX→TA加工费",    risk:"中", logic:"对二甲苯(PX)加工为涤纶(TA)，加工费均值回归" },
-  pr_bottle: { tags:["加工费","瓶片","中风险"],   ratio:"PTA+MEG→瓶片",   risk:"中", logic:"PTA+MEG原料加工为瓶片，加工费均值回归" },
-  pr_pf:     { tags:["加工费","丙纶","中风险"],   ratio:"PP→PF加工费",     risk:"中", logic:"聚丙烯(PP)加工为丙纶(PF)，加工费均值回归" },
-  l_pp:      { tags:["跨品种","塑料","中风险"],   ratio:"1手L : 1手PP",   risk:"中", logic:"聚乙烯(L)与聚丙烯(PP)同为烯烃，工艺路线接近，价差均值回归" },
-  rm_oi:     { tags:["跨品种","油粕","中风险"],   ratio:"1手RM : 1手OI",  risk:"中", logic:"菜粕与菜油同源菜籽压榨，压榨利润约束价差范围" },
-  m_rm:      { tags:["跨品种","粕类","低风险"],   ratio:"1手M : 1手RM",   risk:"低", logic:"豆粕与菜粕均为饲料蛋白原料，替代效应约束价差" },
-  rm_c:      { tags:["跨品种","饲料","中风险"],   ratio:"1手RM : 2手C",   risk:"中", logic:"菜粕与玉米为养殖饲料配方替代，蛋白/能量比价回归" },
-  lu_fu:     { tags:["跨品种","燃油","高风险"],   ratio:"1手LU : 1手FU",  risk:"高", logic:"低硫燃油(LU)与高硫燃油(FU)价差由硫磺价差和环保政策驱动" },
+  // ratio 字段与后端 api/index.py STRATEGIES[id]["ratio"] 严格对应
+  br_nr:     { tags:["跨品种","橡胶","中风险"],   ratio:"2手BR : 1手NR",           risk:"中", logic:"合成橡胶(BR)与天然橡胶(NR)互为轮胎配方替代品，比价回归是核心逻辑" },
+  im_ic:     { tags:["股指","跨品种","低风险"],   ratio:"1手IM : 1手IC",           risk:"低", logic:"IM(中证1000)与IC(中证500)均为小盘股指，流动性差异产生溢价机会" },
+  ta_px:     { tags:["加工费","化纤","中风险"],   ratio:"3手TA : 2手PX",           risk:"中", logic:"对二甲苯(PX)加工为精对苯二甲酸(TA)，加工费=TA - PX×0.655，均值回归" },
+  pr_bottle: { tags:["加工费","瓶片","中风险"],   ratio:"2手PR : 5手TA : 1手EG",   risk:"中", logic:"PTA+MEG原料加工为瓶片(PR)，加工费=PR - TA×0.855 - EG×0.335，均值回归" },
+  pr_pf:     { tags:["加工费","丙纶","中风险"],   ratio:"1手PR : 3手PF",           risk:"中", logic:"瓶片(PR)与丙纶(PF)加工费差值，反映下游需求结构变化" },
+  l_pp:      { tags:["跨品种","塑料","中风险"],   ratio:"1手L : 1手PP",            risk:"中", logic:"聚乙烯(L)与聚丙烯(PP)同为烯烃，工艺路线接近，价差均值回归" },
+  rm_oi:     { tags:["跨品种","油粕","中风险"],   ratio:"4手RM : 1手OI",           risk:"中", logic:"菜粕与菜油同源菜籽压榨，公式=RM×4 - OI，压榨利润约束价差范围" },
+  m_rm:      { tags:["跨品种","粕类","低风险"],   ratio:"1手M : 1手RM",            risk:"低", logic:"豆粕与菜粕均为饲料蛋白原料，替代效应约束价差" },
+  rm_c:      { tags:["跨品种","饲料","中风险"],   ratio:"1手RM : 1手C",            risk:"中", logic:"菜粕与玉米为养殖饲料配方替代，蛋白/能量比价回归" },
+  lu_fu:     { tags:["跨品种","燃油","高风险"],   ratio:"1手LU : 1手FU",           risk:"高", logic:"低硫燃油(LU)与高硫燃油(FU)价差由硫磺价差和环保政策驱动" },
 };
 
 const STRATEGY_CONFIG = {
