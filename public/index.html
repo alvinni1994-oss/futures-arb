@@ -154,16 +154,19 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
   #mc{height:260px}#pc{height:200px}#hc{height:130px}
   .hdr{padding:0 12px}
   .hdr h1{font-size:.85rem}
-  .hdr-tag{display:none}  /* 手机隐藏"实时监控"badge，节省空间 */
-  .lupd-wrap{display:none} /* 手机隐藏更新时间 */
+  .hdr-tag{display:none}
+  .lupd-wrap{display:none}
   .hdr-r{font-size:.7rem;gap:4px}
   .rbtn{padding:3px 7px;font-size:.7rem}
   .dc-icon{font-size:1.6rem}
   .mc-val{font-size:.95rem}
-  .dc-prices-row{gap:6px;padding:8px 10px}
-  .dc-price-div{display:none}  /* 手机上隐藏分隔线，用gap代替 */
-  .dc-price-item{min-width:70px}
-  .dc-diff-val{font-size:1.3rem}
+  /* 价格行：手机上用grid，第一行3列(BR/NR/价差)，第二行2列(分位/Z) */
+  .dc-prices-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;padding:8px 10px;align-items:start}
+  .dc-price-div{display:none}
+  .dc-price-item{min-width:0;text-align:center;padding:4px 2px}
+  .dc-price-item.full-row{grid-column:1/-1} /* 占整行 */
+  .dc-price-item.span2{grid-column:span 2} /* 占2列居中 */
+  .dc-diff-val{font-size:1.2rem}
   .chart-tabs{gap:4px}
   .ctab{padding:5px 10px;font-size:.75rem}
   .ct{padding:8px}
@@ -262,13 +265,13 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
           <div class="dc-price-sub" id="diff-vs-mean"></div>
         </div>
         <div class="dc-price-div"></div>
-        <div class="dc-price-item">
+        <div class="dc-price-item span2">
           <div class="dc-price-label">历史分位</div>
           <div class="dc-price-val" id="hdr-pct" style="font-size:1.3rem">—</div>
           <div class="dc-price-sub" id="hdr-pct-sub"></div>
         </div>
         <div class="dc-price-div"></div>
-        <div class="dc-price-item">
+        <div class="dc-price-item span2">
           <div class="dc-price-label">Z-Score（辅）</div>
           <div class="dc-price-val" id="hdr-z" style="font-size:1.3rem">—</div>
           <div class="dc-price-sub" id="hdr-z-sub"></div>
