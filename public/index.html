@@ -300,8 +300,22 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
     </div>
   </div>
 
-  <!-- ② 相关性 -->
+  <!-- ② 相关性 + 分位条 -->
   <div class="crr-bar" id="crr"></div>
+  <div id="pct-bar-wrap" style="display:none;background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 16px;margin-bottom:10px;box-shadow:var(--shadow)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:.7rem;font-weight:700;color:var(--t3)">历史分位位置（近<span id="pct-bar-yrs">3</span>年）</span>
+      <span id="pct-bar-val" style="font-size:.85rem;font-weight:800"></span>
+    </div>
+    <div style="position:relative;height:10px;border-radius:5px;background:linear-gradient(to right,#22c55e,#84cc16,#facc15,#fb923c,#ef4444);overflow:visible">
+      <div id="pct-bar-dot" style="position:absolute;top:50%;width:14px;height:14px;border-radius:50%;background:#1a1d23;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);transform:translate(-50%,-50%);transition:left .4s"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.62rem;color:var(--t3);margin-top:5px">
+      <span style="color:var(--green)">偏低/做多</span>
+      <span>中性</span>
+      <span style="color:var(--red)">偏高/做空</span>
+    </div>
+  </div>
 
   <!-- ③ 报价公式 + 下单公式（折叠） -->
   <div class="strat-toggle">
@@ -958,13 +972,13 @@ function renderDecision(d){
   document.getElementById("hdr-nr-rt").textContent=d.realtime?"🟢 实时":"昨收";
   const diffEl=document.getElementById("hdr-diff");
   diffEl.textContent=(diff>=0?"+":"")+diff.toLocaleString();
-  diffEl.style.color=diff>T.diffStrongHi?"var(--red)":diff>T.diffOpenHi?"var(--orange)":diff<T.diffStrongLo?"var(--blue)":diff<T.diffOpenLo?"#7c3aed":"var(--t)";
+  diffEl.style.color=diff>T.diffStrongHi?"var(--red)":diff>T.diffOpenHi?"var(--orange)":diff<T.diffStrongLo?"var(--green)":diff<T.diffOpenLo?"var(--green)":"var(--t3)";
   document.getElementById("diff-vs-mean").textContent="均值+"+(mean|0)+"，当前偏离+"+(diff-mean|0)+"元";
   document.getElementById("hdr-pct").textContent="P"+dpct.toFixed(1)+"%";
-  document.getElementById("hdr-pct").style.color=dpct>80?"var(--red)":dpct<20?"var(--blue)":"var(--t)";
+  document.getElementById("hdr-pct").style.color=dpct>80?"var(--red)":dpct<20?"var(--green)":"var(--t3)";
   document.getElementById("hdr-pct-sub").textContent=yrs+"年统计";
   document.getElementById("hdr-z").textContent=(dz>=0?"+":"")+dz.toFixed(2)+"σ";
-  document.getElementById("hdr-z").style.color=Math.abs(dz)>=T.strong?"var(--red)":Math.abs(dz)>=T.open?"var(--orange)":"var(--t)";
+  document.getElementById("hdr-z").style.color=Math.abs(dz)>=T.strong?"var(--red)":Math.abs(dz)>=T.open?"var(--orange)":"var(--t3)";
   document.getElementById("hdr-z-sub").textContent=dz>0?"BR偏贵":"NR偏贵";
   document.getElementById("hdr-rt-badge").innerHTML=d.realtime?
     '<span style="background:#dcfce7;color:#16a34a;padding:1px 5px;border-radius:4px;font-size:.58rem;font-weight:700;border:1px solid #86efac;white-space:nowrap">●实时</span>':
@@ -1002,15 +1016,15 @@ function renderDecision(d){
     bar.className="dc-signal-bar sell"; badge.className="dc-badge badge-sell"; badge.textContent="🔥 强信号：卖BR买NR";
     icon.textContent="🔥"; sub.textContent="BR−NR价差=+"+diff.toFixed(0)+"元 (历史P"+dpct.toFixed(1)+"%），BR极度偏贵，强烈关注做空BR";
     opEl.style.color="var(--red)"; opEl.innerHTML="<b>卖 2手BR @ "+br+" + 买 1手NR @ "+nr+"</b>";
-    tpEl.style.color="var(--green)"; tpEl.textContent="差值回至 +"+(tpHi|0)+"~+"+(tpLo>0?(tpLo|0):(tpLo|0))+"元";
+    tpEl.style.color="var(--t3)"; tpEl.textContent="差值回至 +"+(tpHi|0)+"~+"+(tpLo>0?(tpLo|0):(tpLo|0))+"元";
     slEl.style.color="var(--red)"; slEl.textContent="差值超过 +"+T.diffSl+"元";
     alertNeeded=true; alertKey="🔥强卖"; alertTitle="🔥强信号：卖2手BR买1手NR";
     alertBody="BR-NR价差=+"+diff.toFixed(0)+"元 > +"+T.diffStrongHi+"元，P"+dpct.toFixed(1)+"%\nBR="+br+" NR="+nr+"\n操作：卖2手BR+买1手NR\n止盈：差值回到均值+"+T.diffTp+"以内";
   } else if(diff<=T.diffStrongLo){
     bar.className="dc-signal-bar buy"; badge.className="dc-badge badge-buy"; badge.textContent="🔥 强信号：买BR卖NR";
     icon.textContent="🔥"; sub.textContent="BR−NR价差="+diff.toFixed(0)+"元 (历史P"+dpct.toFixed(1)+"%），NR极度偏贵，关注做多BR";
-    opEl.style.color="var(--blue)"; opEl.innerHTML="<b>买 2手BR @ "+br+" + 卖 1手NR @ "+nr+"</b>";
-    tpEl.style.color="var(--green)"; tpEl.textContent="差值回至 "+(tpLo|0)+"~+"+(tpHi|0)+"元";
+    opEl.style.color="var(--green)"; opEl.innerHTML="<b>买 2手BR @ "+br+" + 卖 1手NR @ "+nr+"</b>";
+    tpEl.style.color="var(--t3)"; tpEl.textContent="差值回至 "+(tpLo|0)+"~+"+(tpHi|0)+"元";
     slEl.style.color="var(--red)"; slEl.textContent="差值低于 "+(-T.diffSl)+"元";
     alertNeeded=true; alertKey="🔥强买"; alertTitle="🔥强信号：买2手BR卖1手NR";
     alertBody="BR-NR价差="+diff.toFixed(0)+"元 < "+T.diffStrongLo+"元，P"+dpct.toFixed(1)+"%\nBR="+br+" NR="+nr+"\n操作：买2手BR+卖1手NR";
@@ -1018,13 +1032,13 @@ function renderDecision(d){
     bar.className="dc-signal-bar sell"; badge.className="dc-badge badge-sell"; badge.textContent="⚠️ 弱信号：关注卖BR";
     icon.textContent="⚠️"; sub.textContent="BR−NR价差=+"+diff.toFixed(0)+"元（+"+T.diffOpenHi+"~+"+T.diffStrongHi+"区间），BR偏贵，弱信号，可小仓关注";
     opEl.style.color="var(--orange)"; opEl.textContent="可小仓试探：卖2手BR + 买1手NR";
-    tpEl.style.color="var(--green)"; tpEl.textContent="差值回至 +"+(tpHi|0)+"元以内";
+    tpEl.style.color="var(--t3)"; tpEl.textContent="差值回至 +"+(tpHi|0)+"元以内";
     slEl.style.color="var(--red)"; slEl.textContent="+"+T.diffSl+"元以上";
   } else if(diff<=T.diffOpenLo){
     bar.className="dc-signal-bar buy"; badge.className="dc-badge badge-buy"; badge.textContent="⚠️ 弱信号：关注买BR";
     icon.textContent="⚠️"; sub.textContent="BR−NR价差="+diff.toFixed(0)+"元（"+T.diffOpenLo+"~"+T.diffStrongLo+"区间），NR偏贵，弱信号";
-    opEl.style.color="var(--blue)"; opEl.textContent="可小仓试探：买2手BR + 卖1手NR";
-    tpEl.style.color="var(--green)"; tpEl.textContent="差值回至 "+(tpLo|0)+"元以上";
+    opEl.style.color="var(--green)"; opEl.textContent="可小仓试探：买2手BR + 卖1手NR";
+    tpEl.style.color="var(--t3)"; tpEl.textContent="差值回至 "+(tpLo|0)+"元以上";
     slEl.style.color="var(--red)"; slEl.textContent=(-T.diffSl)+"元以下";
   } else {
     bar.className="dc-signal-bar wait"; badge.className="dc-badge badge-wait"; badge.textContent="📊 观望";
@@ -1035,6 +1049,22 @@ function renderDecision(d){
   }
 
   noteEl.textContent="配对：2手BR(5t×2=10t) : 1手NR(10t×1=10t) · 价差均值+"+(mean|0)+"元/吨 · "+(d.realtime?"🟢实时价":"⚠昨日收盘价")+" "+d.last_date+" · 仅供研究参考";
+
+  // ── 分位进度条 ──
+  const pbarWrap=document.getElementById("pct-bar-wrap");
+  const pbarDot=document.getElementById("pct-bar-dot");
+  const pbarVal=document.getElementById("pct-bar-val");
+  const pbarYrs=document.getElementById("pct-bar-yrs");
+  if(pbarWrap && pbarDot && pbarVal){
+    pbarWrap.style.display="block";
+    const pLeft=Math.min(Math.max(dpct,1),99).toFixed(1);
+    pbarDot.style.left=pLeft+"%";
+    const pColor=dpct>80?"var(--red)":dpct<20?"var(--green)":"var(--t3)";
+    pbarVal.textContent="P"+dpct.toFixed(1)+"%";
+    pbarVal.style.color=pColor;
+    if(pbarYrs) pbarYrs.textContent=yrs;
+  }
+
   if(alertNeeded) fireAlert(alertTitle, alertBody, alertKey);
   updateAlertStatusPanel();
 }
@@ -1058,7 +1088,7 @@ function render(){
   // 指标卡已整合到决策卡和趋势图解读中，此处不再单独渲染
 
   const ci=Object.entries(d.corr).map(([k,v])=>{
-    const c=v>0.6?"var(--green)":v>0.3?"var(--yellow)":"var(--red)";
+    const c=v>0.6?"var(--t)":"var(--t3)";
     return `<div class="crr-item"><span class="crr-k">${k}</span><span class="crr-v" style="color:${c}">${v.toFixed(3)}</span></div>`;
   }).join("");
   document.getElementById("crr").innerHTML=`<span class="crr-label">📊 BR/NR 相关性</span><div class="crr-items">${ci}</div>`;
