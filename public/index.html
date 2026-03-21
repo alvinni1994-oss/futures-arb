@@ -505,11 +505,7 @@ let T={diffOpenHi:1500,diffStrongHi:2500,diffOpenLo:-800,diffStrongLo:-1500,diff
 let AC={notif:false,email:false,emails:[],webhook:true,webhookKey:"SCT326715TNpUrFtLyGQwtSHpPzDMFyXEn"};
 
 // ===== 持久化 =====
-function loadSettings(){
-  try{
-    const s=localStorage.getItem("brnr_v6_thresh"); if(s) T={...T,...JSON.parse(s)};
-    const a=localStorage.getItem("brnr_v6_alert"); if(a) AC={...AC,...JSON.parse(a)};
-  }catch(e){}
+function applySettings(){
   document.getElementById("t-diff-open-hi").value=T.diffOpenHi;
   document.getElementById("t-diff-strong-hi").value=T.diffStrongHi;
   document.getElementById("t-diff-open-lo").value=T.diffOpenLo;
@@ -526,6 +522,31 @@ function loadSettings(){
   setAlertTimer();
 }
 
+async function loadSettings(){
+  // 先从 localStorage 读（快速显示）
+  try{
+    const s=localStorage.getItem("brnr_v6_thresh"); if(s) T={...T,...JSON.parse(s)};
+    const a=localStorage.getItem("brnr_v6_alert"); if(a) AC={...AC,...JSON.parse(a)};
+  }catch(e){}
+  applySettings();
+  // 再从服务器读（跨设备同步），覆盖 localStorage
+  try{
+    const r=await fetch(API+"/api/settings?key=default");
+    if(r.ok){
+      const d=await r.json();
+      if(d.thresh&&Object.keys(d.thresh).length){
+        T={...T,...d.thresh};
+        localStorage.setItem("brnr_v6_thresh",JSON.stringify(T));
+      }
+      if(d.alert&&Object.keys(d.alert).length){
+        AC={...AC,...d.alert};
+        localStorage.setItem("brnr_v6_alert",JSON.stringify(AC));
+      }
+      applySettings();
+    }
+  }catch(e){}
+}
+
 function saveThresh(){
   T={
     diffOpenHi:+document.getElementById("t-diff-open-hi").value||1500,
@@ -538,10 +559,16 @@ function saveThresh(){
     strong:+document.getElementById("t-strong").value||2.0,
   };
   localStorage.setItem("brnr_v6_thresh",JSON.stringify(T));
+  // 同步到服务器
+  try{
+    const ac=AC.webhookKey?{webhookKey:AC.webhookKey,webhook:AC.webhook,email:AC.email,emails:AC.emails}:{};
+    await fetch(API+"/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({key:"default",thresh:T,alert:ac})});
+  }catch(e){}
   if(D) renderDecision(D);
   updateStratText();
   const btn=document.querySelector('.save-btn');
-  btn.textContent="✅ 已保存"; setTimeout(()=>btn.textContent="💾 保存应用",1500);
+  btn.textContent="✅ 已保存（已同步）"; setTimeout(()=>btn.textContent="💾 保存应用",2000);
 }
 
 function saveAlertCfg(){

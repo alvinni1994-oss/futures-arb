@@ -375,3 +375,43 @@ async def send_email_api(req: EmailRequest):
 
 
 
+
+
+# ===== 跨设备设置同步 =====
+import json as _json_sync
+
+_SETTINGS_FILE = "/tmp/brnr_settings.json"
+_settings_cache: dict = {}
+
+def _load_settings_file() -> dict:
+    try:
+        with open(_SETTINGS_FILE) as f:
+            return _json_sync.load(f)
+    except Exception:
+        return {}
+
+def _save_settings_file(data: dict):
+    try:
+        with open(_SETTINGS_FILE, "w") as f:
+            _json_sync.dump(data, f)
+    except Exception:
+        pass
+
+@app.get("/api/settings")
+def get_settings(key: str = "default"):
+    """获取用户设置（跨设备同步）"""
+    data = _load_settings_file()
+    return data.get(key, {})
+
+class SettingsReq(BaseModel):
+    key: str = "default"
+    thresh: dict = {}
+    alert: dict = {}
+
+@app.post("/api/settings")
+def save_settings(req: SettingsReq):
+    """保存用户设置（跨设备同步）"""
+    data = _load_settings_file()
+    data[req.key] = {"thresh": req.thresh, "alert": req.alert, "ts": time.time()}
+    _save_settings_file(data)
+    return {"ok": True}
