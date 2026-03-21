@@ -518,6 +518,7 @@ async function selectStrategy(id) {
   const menuEl = document.getElementById("menu-" + id);
   if (menuEl) menuEl.classList.add("active");
   document.getElementById("hdr-title").textContent = STRATEGY_NAME[id] || "期货套利监控";
+  syncThreshInputs();
   await loadSpread(false);
 }
 
@@ -1052,6 +1053,7 @@ window.addEventListener("resize", () => {
 renderMenu();
 selectStrategy("br_nr").then(() => {
   loadAllBadges();
+  loadSettings();
 });
 </script>
 </body>
