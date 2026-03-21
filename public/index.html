@@ -1157,11 +1157,11 @@ window.addEventListener("resize",()=>{
   // 屏幕尺寸变化时重新渲染图表（重建isMobile响应布局）
   if(D) render();
 });
-loadSettings();
-// 先隐藏遮罩显示界面骨架，再后台加载数据
+// 先等 loadSettings 从服务器拉到最新阈值，再加载数据渲染
 hideOv();
-// 延迟100ms让页面先渲染出来
-setTimeout(()=>loadPair(false), 100);
+loadSettings().then(()=>{
+  setTimeout(()=>loadPair(false), 100);
+});
 rtTimer=setInterval(pollRealtime,60000);
 </script>
 </body>

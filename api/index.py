@@ -381,26 +381,61 @@ async def send_email_api(req: EmailRequest):
 import json as _json_sync
 
 _SETTINGS_FILE = "/tmp/brnr_settings.json"
-_settings_cache: dict = {}
+_settings_mem: dict = {}  # 内存缓存，重启丢失但至少当次会话有效
 
-def _load_settings_file() -> dict:
+def _load_settings() -> dict:
+    # 1. 优先内存
+    if _settings_mem:
+        return dict(_settings_mem)
+    # 2. 从环境变量读（持久化）
+    raw = os.environ.get("BRNR_SETTINGS", "")
+    if raw:
+        try:
+            data = _json_sync.loads(raw)
+            _settings_mem.update(data)
+            return data
+        except Exception:
+            pass
+    # 3. 从文件读（临时）
     try:
         with open(_SETTINGS_FILE) as f:
-            return _json_sync.load(f)
+            data = _json_sync.load(f)
+            _settings_mem.update(data)
+            return data
     except Exception:
         return {}
 
-def _save_settings_file(data: dict):
+def _save_settings(data: dict):
+    _settings_mem.clear()
+    _settings_mem.update(data)
+    # 写文件（临时，重启丢失）
     try:
         with open(_SETTINGS_FILE, "w") as f:
             _json_sync.dump(data, f)
     except Exception:
         pass
+    # 尝试通过 Render API 写环境变量（持久化）
+    render_api_key = os.environ.get("RENDER_API_KEY", "")
+    render_service_id = os.environ.get("RENDER_SERVICE_ID", "")
+    if render_api_key and render_service_id:
+        try:
+            import urllib.request as _ur
+            payload = _json_sync.dumps({"key": "BRNR_SETTINGS", "value": _json_sync.dumps(data)}).encode()
+            req = _ur.Request(
+                f"https://api.render.com/v1/services/{render_service_id}/env-vars",
+                data=_json_sync.dumps([{"key": "BRNR_SETTINGS", "value": _json_sync.dumps(data)}]).encode(),
+                headers={"Authorization": f"Bearer {render_api_key}", "Content-Type": "application/json"},
+                method="PUT"
+            )
+            with _ur.urlopen(req, timeout=5):
+                pass
+        except Exception:
+            pass
 
 @app.get("/api/settings")
 def get_settings(key: str = "default"):
     """获取用户设置（跨设备同步）"""
-    data = _load_settings_file()
+    data = _load_settings()
     return data.get(key, {})
 
 class SettingsReq(BaseModel):
@@ -411,9 +446,9 @@ class SettingsReq(BaseModel):
 @app.post("/api/settings")
 def save_settings(req: SettingsReq):
     """保存用户设置（跨设备同步）"""
-    data = _load_settings_file()
+    data = _load_settings()
     data[req.key] = {"thresh": req.thresh, "alert": req.alert, "ts": time.time()}
-    _save_settings_file(data)
+    _save_settings(data)
     return {"ok": True}
 
 
