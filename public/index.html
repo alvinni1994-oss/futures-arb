@@ -1312,7 +1312,7 @@ function buildPushContent(id, d, signal) {
     `| P5~P95区间 | ${Math.round(p5).toLocaleString()} ~ ${Math.round(p95).toLocaleString()} ${unit} |\n\n` +
     `## 操作建议\n\n${actionStr}，价差=${curStr}${unit}，Z=${zscore.toFixed(2)}σ\n\n` +
     (corrRows ? `## 历史相关性\n\n| 周期 | 相关系数 |\n|------|----------|\n${corrRows}\n` : "") +
-    `🔗 [查看完整图表](${appUrl})`;
+    `🔗 [查看完整图表](${appUrl}?id=${id})`;
 }
 
 // 检查并触发推送（silent模式下调用）
@@ -1445,7 +1445,10 @@ window.addEventListener("resize", () => {
 
 // ===== 初始化 =====
 renderMenu();
-selectStrategy("br_nr").then(() => {
+// 支持 URL 参数 ?id=rm_oi 直接跳到指定策略（推送链接点击后自动切换）
+const _urlId = new URLSearchParams(window.location.search).get("id");
+const _initId = (_urlId && STRATEGY_CONFIG[_urlId]) ? _urlId : "br_nr";
+selectStrategy(_initId).then(() => {
   loadAllBadges();
   loadSettings();
 });
