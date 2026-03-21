@@ -1257,8 +1257,9 @@ function buildPushContent(id, d, signal) {
   let priceRows = "";
   legs.forEach(sym => {
     const p = prices[sym];
-    const rts = rtSyms[sym] ? `(${rtSyms[sym]})` : "";
-    priceRows += `| ${sym}${rts} | ${p != null ? Math.round(p).toLocaleString() + " " + unit.replace("/吨","") + "/吨" : "—"} |\n`;
+    const contract = rtSyms[sym] || `${sym}主力`;
+    const priceStr = p != null ? Math.round(p).toLocaleString() + " " + (unit.includes("/吨") ? "元/吨" : unit) : "—";
+    priceRows += `| ${sym} | ${contract} | ${priceStr} |\n`;
   });
 
   // 操作建议
@@ -1276,7 +1277,7 @@ function buildPushContent(id, d, signal) {
 
   const appUrl = "https://futures-arb.onrender.com";
 
-  return `## 实时行情\n\n| 品种 | 最新价 |\n|------|--------|\n${priceRows}\n` +
+  return `## 实时行情\n\n| 品种 | 合约 | 最新价 |\n|------|------|--------|\n${priceRows}\n` +
     `## 价差统计\n\n| 指标 | 数值 |\n|------|------|\n` +
     `| 当前价差 | ${curStr} ${unit} |\n` +
     `| 历史均值 | ${Math.round(mean).toLocaleString()} ${unit} |\n` +
