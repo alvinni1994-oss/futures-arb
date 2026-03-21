@@ -372,15 +372,12 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
               <div class="status-line" id="notif-status">未授权</div>
             </div>
             <div class="alert-item">
-              <label>📱 微信推送（Server酱）</label>
-              <input type="text" class="alert-input" id="alert-webhook" placeholder="SCT开头的SendKey">
-              <div class="alert-hint">在 <a href="https://sct.ftqq.com" target="_blank" style="color:var(--blue)">sct.ftqq.com</a> 免费注册获取 SendKey</div>
-              <div class="toggle-row" onclick="toggleWebhook()">
-                <div class="toggle-sw" id="sw-webhook"></div>
-                <span>启用微信推送</span>
-              </div>
-              <button class="test-btn" onclick="testWebhook()">📨 发测试消息</button>
-              <div class="status-line" id="webhook-status">未启用</div>
+              <label style="display:flex;justify-content:space-between;align-items:center">
+                <span>📱 微信推送（Server酱）</span>
+                <button class="test-btn" onclick="addWebhookKey()" style="padding:2px 10px;font-size:.7rem">＋ 添加</button>
+              </label>
+              <div class="alert-hint" style="margin-bottom:8px">在 <a href="https://sct.ftqq.com" target="_blank" style="color:var(--blue)">sct.ftqq.com</a> 注册获取 SendKey，支持多账号同时推送，自动记住设置</div>
+              <div id="webhook-list"></div>
             </div>
           </div>
         </div>
@@ -1054,7 +1051,83 @@ async function saveThresh() {
 }
 
 // ── 提醒设置：AC（Alert Config）全局状态 ──
-const AC = { webhook: false, webhookKey: "" };
+// ── 多 Key 微信推送（localStorage 持久化）──
+// 数据结构：[{ key: "SCT...", enabled: true, label: "我的微信" }, ...]
+const WKEYS_LS = "arb_webhook_keys_v2";
+let webhookKeys = [];
+
+function _loadWebhookKeys() {
+  try { webhookKeys = JSON.parse(localStorage.getItem(WKEYS_LS) || "[]"); } catch(e) { webhookKeys = []; }
+  if (!Array.isArray(webhookKeys)) webhookKeys = [];
+  if (webhookKeys.length === 0) webhookKeys = [{ key: "", enabled: false, label: "" }];
+}
+function _saveWebhookKeys() {
+  // 先从 DOM 同步最新值
+  webhookKeys.forEach((_, i) => {
+    const inp = document.getElementById(`wk-key-${i}`);
+    const lbl = document.getElementById(`wk-lbl-${i}`);
+    if (inp) webhookKeys[i].key = inp.value.trim();
+    if (lbl) webhookKeys[i].label = lbl.value.trim();
+  });
+  localStorage.setItem(WKEYS_LS, JSON.stringify(webhookKeys));
+}
+function renderWebhookList() {
+  const ul = document.getElementById("webhook-list");
+  if (!ul) return;
+  ul.innerHTML = webhookKeys.map((w, i) => `
+    <div style="border:1px solid var(--bd);border-radius:8px;padding:9px 10px;margin-bottom:8px;background:var(--bg2)">
+      <div style="display:flex;gap:6px;margin-bottom:6px">
+        <input id="wk-lbl-${i}" type="text" class="alert-input" style="flex:0 0 90px;font-size:.7rem"
+          placeholder="备注（可选）" value="${w.label||''}" oninput="_saveWebhookKeys()">
+        <input id="wk-key-${i}" type="text" class="alert-input" style="flex:1;font-size:.7rem"
+          placeholder="SCT开头的SendKey" value="${w.key||''}" oninput="_saveWebhookKeys()">
+        ${webhookKeys.length > 1 ? `<button class="test-btn" onclick="removeWebhookKey(${i})" style="padding:2px 8px;background:var(--red-bg);color:var(--red);border-color:var(--red-bd)">✕</button>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="toggle-row" onclick="toggleWebhookKey(${i})" style="flex:1">
+          <div class="toggle-sw ${w.enabled?'on':''}" id="sw-wk-${i}"></div>
+          <span style="font-size:.72rem">${w.enabled?'✅ 已启用':'点击启用推送'}</span>
+        </div>
+        <button class="test-btn" onclick="testWebhookKey(${i})" style="padding:3px 10px;font-size:.7rem">📨 测试</button>
+        <span id="wk-st-${i}" style="font-size:.65rem;color:var(--t3)"></span>
+      </div>
+    </div>`).join('');
+}
+function addWebhookKey() {
+  _saveWebhookKeys();
+  webhookKeys.push({ key: "", enabled: false, label: "" });
+  _saveWebhookKeys();
+  renderWebhookList();
+}
+function removeWebhookKey(i) {
+  _saveWebhookKeys();
+  webhookKeys.splice(i, 1);
+  _saveWebhookKeys();
+  renderWebhookList();
+}
+function toggleWebhookKey(i) {
+  _saveWebhookKeys();
+  webhookKeys[i].enabled = !webhookKeys[i].enabled;
+  _saveWebhookKeys();
+  renderWebhookList();
+}
+async function testWebhookKey(i) {
+  _saveWebhookKeys();
+  const w = webhookKeys[i];
+  const st = document.getElementById(`wk-st-${i}`);
+  if (!w.key) { if(st) st.textContent = "⚠ 请先填入Key"; return; }
+  if(st) st.textContent = "发送中…";
+  try {
+    await sendServerChan(w.key, "🧪 期货套利测试", "推送功能正常！如果收到此消息说明配置成功 ✅");
+    if(st) { st.textContent = "✅ 已发出"; st.style.color = "var(--green)"; }
+    setTimeout(() => { if(st) { st.textContent = ""; } }, 4000);
+  } catch(e) {
+    if(st) { st.textContent = "❌ " + e.message; st.style.color = "var(--red)"; }
+  }
+}
+
+// 兼容旧代码引用
+const AC = { get webhook(){ return webhookKeys.some(w=>w.enabled&&w.key); }, webhookKey: "" };
 
 // ── 推送防重复状态 ──
 // key: strategyId, value: { signal, lastPushTime, todayCount }
@@ -1130,7 +1203,7 @@ function buildPushContent(id, d, signal) {
 
 // 检查并触发推送（silent模式下调用）
 async function checkAndPushAlert(id, d, signal) {
-  if (!AC.webhook || !AC.webhookKey) return;
+  if (!webhookKeys.some(w => w.enabled && w.key)) return;
   if (signal === 'wait') return; // 观望不推
 
   const state = _getAlertState(id);
@@ -1155,11 +1228,15 @@ async function checkAndPushAlert(id, d, signal) {
   const title = `${name}: ${signalLabel}`;
   const content = buildPushContent(id, d, signal);
 
-  try {
-    await sendServerChan(AC.webhookKey, title, content);
-    console.log(`[推送] ${title} 已发送`);
-  } catch(e) {
-    console.warn("[推送失败]", e);
+  const activeKeys = webhookKeys.filter(w => w.enabled && w.key);
+  if (activeKeys.length === 0) return;
+  for (const w of activeKeys) {
+    try {
+      await sendServerChan(w.key, title, content);
+      console.log(`[推送] ${title} → ${w.label || w.key.slice(0,10)}… 已发送`);
+    } catch(e) {
+      console.warn(`[推送失败] ${w.label || w.key.slice(0,10)}`, e);
+    }
   }
 }
 
@@ -1199,15 +1276,7 @@ function updateNotifUI() {
   }
 }
 
-function toggleWebhook(){
-  AC.webhook=!AC.webhook;
-  // 同步读取最新 SendKey
-  const wh = document.getElementById("alert-webhook");
-  if(wh) AC.webhookKey = wh.value.trim();
-  document.getElementById("sw-webhook")?.classList.toggle("on",AC.webhook);
-  const s=document.getElementById("webhook-status");
-  if(s) s.textContent=AC.webhook?"✅ 已启用（定时轮询时自动推送）":"未启用";
-}
+function toggleWebhook(){} // 已迁移到多Key管理，保留兼容
 
 async function sendServerChan(key, title, content){
   // 直接从浏览器调 Server酱，绕过后端（Render US节点访问sctapi超时）
@@ -1225,19 +1294,7 @@ async function sendServerChan(key, title, content){
     body: body.toString()});
 }
 
-async function testWebhook(){
-  const key=document.getElementById("alert-webhook")?.value.trim();
-  if(!key){alert("请先填入SendKey");return;}
-  const st=document.getElementById("webhook-status");
-  if(st){st.textContent="发送中...";st.style.color="";}
-  try{
-    await sendServerChan(key,"🧪 期货套利测试","推送功能正常！如果收到此消息说明配置成功 ✅");
-    // no-cors 模式无法读响应，发出即视为成功
-    if(st){st.textContent="✅ 已发送（请检查微信）";st.style.color="var(--green)";}
-  }catch(e){
-    if(st){st.textContent="❌ 发送失败："+e.message;st.style.color="var(--red)";}
-  }
-}
+function testWebhook(){} // 已迁移到 testWebhookKey(i)，保留兼容
 
 // ── 加载 settings（阈值 + 通知配置）──
 async function loadSettings() {
@@ -1251,24 +1308,15 @@ async function loadSettings() {
         }
       }
     }
-    const r2 = await fetch(`${API}/api/settings?key=alert_config`);
-    if(r2.ok) {
-      const ac = await r2.json();
-      if(ac) Object.assign(AC, ac);
-    }
   } catch(e) {}
 
   syncThreshInputs();
   setAlertTimer();
   updateNotifUI();
 
-  const wh = document.getElementById("alert-webhook");
-  if(wh && AC.webhookKey) wh.value = AC.webhookKey;
-  if(AC.webhook) {
-    document.getElementById("sw-webhook")?.classList.add("on");
-    const s=document.getElementById("webhook-status");
-    if(s) s.textContent="✅ 已启用";
-  }
+  // 多 Key 微信推送：从 localStorage 加载并渲染
+  _loadWebhookKeys();
+  renderWebhookList();
 }
 
 window.addEventListener("resize", () => {
