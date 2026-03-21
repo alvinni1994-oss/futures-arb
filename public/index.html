@@ -854,9 +854,18 @@ async function fetchWithTimeout(url, timeoutMs=55000){
   }
 }
 
+function showToast(msg,color="#4a5568"){
+  let t=document.getElementById("_toast");
+  if(!t){t=document.createElement("div");t.id="_toast";
+    t.style.cssText="position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:8px 18px;border-radius:20px;font-size:.8rem;z-index:9999;pointer-events:none;transition:opacity .3s";
+    document.body.appendChild(t);}
+  t.textContent=msg; t.style.color=color; t.style.opacity="1";
+}
+function hideToast(){const t=document.getElementById("_toast");if(t)t.style.opacity="0";}
+
 let _loadRetry=0;
 async function loadPair(silent=false){
-  if(!silent) showOv("正在拉取 BR/NR 实时行情与历史数据（首次冷启动最多需要60秒）...");
+  if(!silent) showToast("⏳ 正在加载数据，首次启动约需60秒...");
   const t0=Date.now();
   try{
     const r=await fetchWithTimeout(API+"/api/pair?a=BR&b=NR&years="+yrs, 65000);
@@ -866,25 +875,26 @@ async function loadPair(silent=false){
     window._lastData = D;
     _loadRetry=0;
     render();
+    hideToast();
     document.getElementById("lupd").textContent=new Date().toLocaleTimeString("zh-CN");
     document.getElementById("rt-dot").style.background=D.realtime?"#16a34a":"#ca8a04";
   }catch(e){
-    hideOv();
     const elapsed=Math.round((Date.now()-t0)/1000);
     if(e.name==="AbortError"||elapsed>30){
-      // 超时：提示用户服务冷启动中，自动重试
       _loadRetry++;
       if(_loadRetry<=3){
-        showOv(`服务冷启动中，正在重试 (${_loadRetry}/3)，请稍候...`);
-        setTimeout(()=>loadPair(true),8000);
+        showToast(`🔄 服务冷启动中，重试 ${_loadRetry}/3...`,"#f59e0b");
+        setTimeout(()=>loadPair(true),10000);
       }else{
         _loadRetry=0;
-        if(!silent) alert("❌ 服务响应超时（Render免费版冷启动需60秒），请稍后手动点刷新重试。");
+        hideToast();
+        showToast("❌ 服务超时，请点右上角刷新按钮重试","#ef4444");
       }
     }else{
-      if(!silent) alert("❌ 加载失败："+e.message);
+      hideToast();
+      if(!silent) showToast("❌ 加载失败："+e.message,"#ef4444");
     }
-  }finally{hideOv()}
+  }
 }
 
 function refreshData(){D=null;loadPair(false)}
@@ -1147,7 +1157,10 @@ window.addEventListener("resize",()=>{
   if(D) render();
 });
 loadSettings();
-loadPair(false);
+// 先隐藏遮罩显示界面骨架，再后台加载数据
+hideOv();
+// 延迟100ms让页面先渲染出来
+setTimeout(()=>loadPair(false), 100);
 rtTimer=setInterval(pollRealtime,60000);
 </script>
 </body>
