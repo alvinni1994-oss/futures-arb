@@ -321,10 +321,9 @@ def get_batch(years: int = 3):
     return results
 
 
-# ===== 邮件发送接口 =====
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+# ===== 邮件发送接口（Resend HTTP API） =====
+import urllib.request
+import json as _json
 from pydantic import BaseModel
 
 class EmailRequest(BaseModel):
@@ -335,30 +334,39 @@ class EmailRequest(BaseModel):
 @app.post("/api/send-email")
 async def send_email_api(req: EmailRequest):
     """
-    使用 QQ 邮箱 SMTP 转发邮件提醒。
-    环境变量：SMTP_USER, SMTP_PASS（QQ邮箱授权码）
-    若未配置则返回提示。
+    使用 Resend HTTP API 发送邮件（兼容 Render 免费版网络限制）。
+    环境变量：RESEND_API_KEY
     """
-    smtp_user = os.environ.get("SMTP_USER", "")
-    smtp_pass = os.environ.get("SMTP_PASS", "")
+    api_key = os.environ.get("RESEND_API_KEY", "")
 
-    if not smtp_user or not smtp_pass:
+    if not api_key:
         return JSONResponse({
             "ok": False,
-            "error": "邮件服务未配置，请在 Render 环境变量中设置 SMTP_USER 和 SMTP_PASS（QQ邮箱授权码）"
+            "error": "邮件服务未配置，请在 Render 环境变量中设置 RESEND_API_KEY"
         }, status_code=503)
 
     try:
-        msg = MIMEMultipart()
-        msg["From"] = f"BR/NR套利监控 <{smtp_user}>"
-        msg["To"] = req.to
-        msg["Subject"] = req.subject
-        msg.attach(MIMEText(req.body, "plain", "utf-8"))
+        payload = _json.dumps({
+            "from": "BR/NR套利监控 <onboarding@resend.dev>",
+            "to": [req.to],
+            "subject": req.subject,
+            "text": req.body,
+        }).encode("utf-8")
 
-        with smtplib.SMTP_SSL("smtp.qq.com", 465, timeout=10) as s:
-            s.login(smtp_user, smtp_pass)
-            s.sendmail(smtp_user, [req.to], msg.as_string())
-
-        return {"ok": True, "message": f"邮件已发送至 {req.to}"}
+        request = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=payload,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(request, timeout=10) as resp:
+            result = _json.loads(resp.read().decode())
+            return {"ok": True, "message": f"邮件已发送至 {req.to}", "id": result.get("id")}
+    except urllib.error.HTTPError as e:
+        err_body = e.read().decode()
+        return JSONResponse({"ok": False, "error": f"Resend API 错误: {err_body}"}, status_code=500)
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
