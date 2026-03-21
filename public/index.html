@@ -160,12 +160,12 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
   .rbtn{padding:3px 7px;font-size:.7rem}
   .dc-icon{font-size:1.6rem}
   .mc-val{font-size:.95rem}
-  /* 价格行：手机上用grid，第一行3列(BR/NR/价差)，第二行2列(分位/Z) */
-  .dc-prices-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;padding:8px 10px;align-items:start}
+  /* 价格行：手机上用2列grid */
+  .dc-prices-row{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:8px 10px;align-items:start}
   .dc-price-div{display:none}
-  .dc-price-item{min-width:0;text-align:center;padding:4px 2px}
-  .dc-price-item.full-row{grid-column:1/-1} /* 占整行 */
-  .dc-price-item.span2{grid-column:span 2} /* 占2列居中 */
+  .dc-price-item{min-width:0;text-align:center;padding:6px 4px}
+  .dc-price-item.full-row{grid-column:1/-1} /* 价差占整行 */
+  .dc-price-item.span2{grid-column:span 1} /* 手机上各占1列 */
   .dc-diff-val{font-size:1.2rem}
   .chart-tabs{gap:4px}
   .ctab{padding:5px 10px;font-size:.75rem}
@@ -256,7 +256,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
           <div class="dc-price-sub"><span id="hdr-nr-rt"></span></div>
         </div>
         <div class="dc-price-div"></div>
-        <div class="dc-price-item" style="flex:1;text-align:center;min-width:120px">
+        <div class="dc-price-item full-row" style="text-align:center">
           <div class="dc-price-label">BR − NR 价差（元/吨）</div>
           <div style="display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:nowrap">
             <div class="dc-diff-val c-orange" id="hdr-diff" style="white-space:nowrap">—</div>
