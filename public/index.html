@@ -145,7 +145,21 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 .ctab.act2{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
 .chart-box{background:#fff;border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin-bottom:12px;box-shadow:var(--shadow)}
 .chart-title{font-size:.75rem;font-weight:700;color:var(--t2);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--bg4)}
-#mc{width:100%;height:320px}#pc{width:100%;height:160px}#hc{width:100%;height:145px}
+#mc{width:100%;height:320px}#pc{width:100%;height:180px}#hc{width:100%;height:150px}
+@media(max-width:500px){
+  #mc{height:260px}#pc{height:200px}#hc{height:130px}
+  .hdr h1{font-size:.95rem}
+  .hdr-r{font-size:.7rem;gap:5px}
+  .rbtn{padding:3px 7px;font-size:.7rem}
+  .dc-icon{font-size:1.6rem}
+  .mc-val{font-size:.95rem}
+  .dc-prices-row{gap:8px}
+  .chart-tabs{gap:4px}
+  .ctab{padding:5px 10px;font-size:.75rem}
+  .ct{padding:8px}
+  .two-col{grid-template-columns:1fr}
+  .metrics-grid{grid-template-columns:repeat(2,1fr)}
+}
 .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
 .sbx{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow)}
 .sbx h4{font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;font-weight:700;padding-bottom:5px;border-bottom:1px solid var(--bg4)}
@@ -958,17 +972,22 @@ function render(){
     splitLineStyle:{lineStyle:{color:"#f0f2f5",type:"dashed"}}
   };
 
+  const isMobile = window.innerWidth <= 500;
   if(!mc_c) mc_c=echarts.init(document.getElementById("mc"));
   mc_c.setOption({
     backgroundColor:"#fff",
-    grid:{left:65,right:110,top:36,bottom:36},
+    grid:{left:isMobile?52:65, right:isMobile?10:110, top:isMobile?80:36, bottom:30},
     tooltip:{trigger:"axis",axisPointer:{type:"cross"},backgroundColor:"#fff",borderColor:"#dde1e7",textStyle:{color:"#1a1d23",fontSize:11},extraCssText:"box-shadow:0 4px 12px rgba(0,0,0,.1)"},
-    legend:{top:6,right:6,textStyle:{color:"#4a5568",fontSize:10},itemWidth:14,itemHeight:8},
+    legend:{top:6, right:4, orient:isMobile?"horizontal":"vertical", left:isMobile?"center":"auto",
+      textStyle:{color:"#4a5568",fontSize:isMobile?9:10},itemWidth:12,itemHeight:7,
+      itemGap:isMobile?4:8},
     xAxis:{type:"category",data:d.dates,boundaryGap:false,axisLine:{lineStyle:{color:"#dde1e7"}},
-      axisLabel:{color:"#8a93a2",fontSize:10,interval:Math.floor(d.dates.length/6),
-        formatter:v=>v?v.slice(0,7):""   // 只显示 YYYY-MM
+      axisLabel:{color:"#8a93a2",fontSize:9,interval:Math.floor(d.dates.length/(isMobile?4:6)),
+        formatter:v=>v?v.slice(0,7):""
       },splitLine:{show:false}},
-    yAxis:{type:"value",scale:true,axisLine:{lineStyle:{color:"#dde1e7"}},axisLabel:{color:"#8a93a2",fontSize:10},splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}},
+    yAxis:{type:"value",scale:true,axisLine:{lineStyle:{color:"#dde1e7"}},
+      axisLabel:{color:"#8a93a2",fontSize:isMobile?9:10,formatter:v=>v>=1000||v<=-1000?(v/1000).toFixed(1)+"k":v},
+      splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}},
     dataZoom:[{type:"inside",start:0,end:100}],
     series:[
       {name:lb,type:"line",data:sp,lineStyle:{color:"#ea580c",width:2},symbol:"none",z:10},
@@ -984,17 +1003,21 @@ function render(){
   if(!pc_c) pc_c=echarts.init(document.getElementById("pc"));
   pc_c.setOption({
     backgroundColor:"#fff",
-    grid:{left:56,right:70,top:24,bottom:30},
+    grid:{left:isMobile?52:56, right:isMobile?52:65, top:isMobile?28:24, bottom:28},
     tooltip:{trigger:"axis",backgroundColor:"#fff",borderColor:"#dde1e7",textStyle:{color:"#1a1d23",fontSize:11}},
-    legend:{top:3,right:5,textStyle:{color:"#4a5568",fontSize:9},itemWidth:12,itemHeight:7},
+    legend:{top:3,right:isMobile?4:5,textStyle:{color:"#4a5568",fontSize:9},itemWidth:12,itemHeight:7},
     xAxis:{type:"category",data:d.dates,boundaryGap:false,
-      axisLabel:{color:"#8a93a2",fontSize:9,interval:Math.floor(d.dates.length/6),
+      axisLabel:{color:"#8a93a2",fontSize:9,interval:Math.floor(d.dates.length/(isMobile?4:6)),
         formatter:v=>v?v.slice(0,7):""
       },axisLine:{lineStyle:{color:"#dde1e7"}},splitLine:{show:false}},
     dataZoom:[{type:"inside",start:0,end:100}],
     yAxis:[
-      {type:"value",scale:true,name:"BR",nameTextStyle:{color:"#ea580c",fontSize:9},axisLabel:{color:"#ea580c",fontSize:9},splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}},
-      {type:"value",scale:true,name:"NR",nameTextStyle:{color:"#9333ea",fontSize:9},axisLabel:{color:"#9333ea",fontSize:9},splitLine:{show:false}}
+      {type:"value",scale:true,name:"BR",nameTextStyle:{color:"#ea580c",fontSize:9},
+        axisLabel:{color:"#ea580c",fontSize:9,formatter:v=>v>=1000?(v/1000).toFixed(0)+"k":v},
+        splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}},
+      {type:"value",scale:true,name:"NR",nameTextStyle:{color:"#9333ea",fontSize:9},
+        axisLabel:{color:"#9333ea",fontSize:9,formatter:v=>v>=1000?(v/1000).toFixed(0)+"k":v},
+        splitLine:{show:false}}
     ],
     series:[
       {name:"BR",type:"line",data:d.ca,yAxisIndex:0,lineStyle:{color:"#ea580c",width:1.5},symbol:"none"},
@@ -1054,7 +1077,11 @@ async function pollRealtime(){
   }catch(e){}
 }
 
-window.addEventListener("resize",()=>{mc_c&&mc_c.resize();pc_c&&pc_c.resize();hc_c&&hc_c.resize()});
+window.addEventListener("resize",()=>{
+  mc_c&&mc_c.resize(); pc_c&&pc_c.resize(); hc_c&&hc_c.resize();
+  // 屏幕尺寸变化时重新渲染图表（重建isMobile响应布局）
+  if(D) render();
+});
 loadSettings();
 loadPair(false);
 rtTimer=setInterval(pollRealtime,60000);
