@@ -531,9 +531,10 @@ async function loadSpread(silent = false) {
     D = await r.json();
     if (D.detail) throw new Error(D.detail);
     hideOv();
-    renderAll(D);
+    const sig = renderAll(D);
     document.getElementById("lupd").textContent = new Date().toLocaleTimeString("zh-CN");
     document.getElementById("rt-dot").style.background = D.realtime ? "#16a34a" : "#ca8a04";
+    if (silent && sig) checkAndPushAlert(currentId, D, sig); // 定时轮询时触发推送检查
   } catch(e) {
     hideOv();
     if (!silent) showOv("加载失败：" + e.message, true);
@@ -546,13 +547,14 @@ function onYears2() { yrs = +document.getElementById("ys2").value; document.getE
 
 // ===== 主渲染 =====
 function renderAll(d) {
-  renderSignal(d);
+  const sig = renderSignal(d);
   renderPrices(d);
   renderCorr(d);
   renderPctBar(d);
   renderFormula(d);
   renderCharts(d);
   renderStats(d);
+  return sig;
 }
 
 // 生成操作指令（带实时价格）
@@ -691,6 +693,7 @@ function renderSignal(d) {
 
   document.getElementById("dc-date").textContent = d.last_date + (d.realtime ? " 实时" : " 昨日收盘");
   noteEl.textContent = (d.note || "") + ` · 价差均值${mean >= 0 ? "+" : ""}${mean.toFixed(0)}${unit} · ${d.realtime ? "🟢实时价" : "⚠昨日收盘价"} ${d.last_date} · 仅供研究参考`;
+  return signal; // 供 loadSpread 触发推送
 }
 
 function renderPrices(d) {
@@ -1053,6 +1056,113 @@ async function saveThresh() {
 // ── 提醒设置：AC（Alert Config）全局状态 ──
 const AC = { webhook: false, webhookKey: "" };
 
+// ── 推送防重复状态 ──
+// key: strategyId, value: { signal, lastPushTime, todayCount }
+const _alertState = {};
+
+function _getAlertState(id) {
+  if (!_alertState[id]) _alertState[id] = { signal: null, lastPushTime: 0, todayCount: 0, todayDate: "" };
+  const s = _alertState[id];
+  const today = new Date().toLocaleDateString("zh-CN");
+  if (s.todayDate !== today) { s.todayDate = today; s.todayCount = 0; } // 每日零点重置
+  return s;
+}
+
+// 构建 Server酱推送消息体（Markdown 表格格式）
+function buildPushContent(id, d, signal) {
+  const stats = d.stats || {};
+  const legs = d.legs || [];
+  const prices = d.leg_prices || {};
+  const rtSyms = d.rt_syms || {};
+  const corr = d.corr || {};
+  const unit = d.unit || "元/吨";
+  const name = d.name || id;
+
+  const cur = stats.cur ?? 0;
+  const mean = stats.mean ?? 0;
+  const std = stats.std ?? 0;
+  const pct = stats.pct ?? 0;
+  const zscore = stats.zscore ?? ((cur - mean) / (std || 1));
+  const p5 = stats.p5 ?? 0;
+  const p95 = stats.p95 ?? 0;
+
+  const curStr = cur >= 0 ? `+${Math.round(cur).toLocaleString()}` : Math.round(cur).toLocaleString();
+  const signalLabel = signal === 'strong_hi' ? '🔥 强信号偏高' : signal === 'weak_hi' ? '⚠️ 弱信号偏高' :
+                      signal === 'strong_lo' ? '🔥 强信号偏低' : signal === 'weak_lo' ? '⚠️ 弱信号偏低' :
+                      signal === 'stop' ? '🛑 止损预警' : '📊 观望';
+
+  // 实时行情表
+  let priceRows = "";
+  legs.forEach(sym => {
+    const p = prices[sym];
+    const rts = rtSyms[sym] ? `(${rtSyms[sym]})` : "";
+    priceRows += `| ${sym}${rts} | ${p != null ? Math.round(p).toLocaleString() + " " + unit.replace("/吨","") + "/吨" : "—"} |\n`;
+  });
+
+  // 操作建议
+  const T = STRATEGY_CONFIG[id] || {};
+  const actions = TRADE_ACTIONS[id] || {};
+  const isHi = signal === 'strong_hi' || signal === 'weak_hi';
+  const actionStr = isHi ? (actions.hi || "—") : (actions.lo || "—");
+
+  // 相关性表
+  let corrRows = "";
+  const corrPeriods = [["1M","1个月"],["3M","3个月"],["1Y","1年"],["3Y","3年"]];
+  corrPeriods.forEach(([k, label]) => {
+    if (corr[k] != null) corrRows += `| ${label} | ${corr[k].toFixed(3)} |\n`;
+  });
+
+  const appUrl = "https://futures-arb.onrender.com";
+
+  return `## 实时行情\n\n| 品种 | 最新价 |\n|------|--------|\n${priceRows}\n` +
+    `## 价差统计\n\n| 指标 | 数值 |\n|------|------|\n` +
+    `| 当前价差 | ${curStr} ${unit} |\n` +
+    `| 历史均值 | ${Math.round(mean).toLocaleString()} ${unit} |\n` +
+    `| 偏离均值 | ${cur >= mean ? "+" : ""}${Math.round(cur - mean).toLocaleString()} ${unit} |\n` +
+    `| 标准差(1σ) | ±${Math.round(std).toLocaleString()} ${unit} |\n` +
+    `| Z-Score | ${zscore.toFixed(2)}σ（>2σ为强信号）|\n` +
+    `| 历史分位 | P${pct.toFixed(1)}%（>P80为偏高）|\n` +
+    `| P5~P95区间 | ${Math.round(p5).toLocaleString()} ~ ${Math.round(p95).toLocaleString()} ${unit} |\n\n` +
+    `## 操作建议\n\n${actionStr}，价差=${curStr}${unit}，Z=${zscore.toFixed(2)}σ\n\n` +
+    (corrRows ? `## 历史相关性\n\n| 周期 | 相关系数 |\n|------|----------|\n${corrRows}\n` : "") +
+    `🔗 [查看完整图表](${appUrl})`;
+}
+
+// 检查并触发推送（silent模式下调用）
+async function checkAndPushAlert(id, d, signal) {
+  if (!AC.webhook || !AC.webhookKey) return;
+  if (signal === 'wait') return; // 观望不推
+
+  const state = _getAlertState(id);
+  const now = Date.now();
+  const maxDaily = signal.startsWith('strong') ? 2 : 1;
+  const minInterval = 4 * 3600 * 1000; // 4小时
+
+  // 防重复：状态未变 + 距上次 < 4h → 不发
+  if (state.signal === signal && (now - state.lastPushTime) < minInterval) return;
+  // 今日次数超限
+  if (state.todayCount >= maxDaily) return;
+
+  // 更新状态
+  state.signal = signal;
+  state.lastPushTime = now;
+  state.todayCount++;
+
+  const name = d.name || id;
+  const signalLabel = signal === 'strong_hi' ? '🔥 强信号偏高' : signal === 'weak_hi' ? '⚠️ 弱信号偏高' :
+                      signal === 'strong_lo' ? '🔥 强信号偏低' : signal === 'weak_lo' ? '⚠️ 弱信号偏低' :
+                      signal === 'stop' ? '🛑 止损预警' : '';
+  const title = `${name}: ${signalLabel}`;
+  const content = buildPushContent(id, d, signal);
+
+  try {
+    await sendServerChan(AC.webhookKey, title, content);
+    console.log(`[推送] ${title} 已发送`);
+  } catch(e) {
+    console.warn("[推送失败]", e);
+  }
+}
+
 let alertTimer = null;
 function setAlertTimer(){
   if(alertTimer) clearInterval(alertTimer);
@@ -1091,9 +1201,12 @@ function updateNotifUI() {
 
 function toggleWebhook(){
   AC.webhook=!AC.webhook;
+  // 同步读取最新 SendKey
+  const wh = document.getElementById("alert-webhook");
+  if(wh) AC.webhookKey = wh.value.trim();
   document.getElementById("sw-webhook")?.classList.toggle("on",AC.webhook);
   const s=document.getElementById("webhook-status");
-  if(s) s.textContent=AC.webhook?"✅ 已启用":"未启用";
+  if(s) s.textContent=AC.webhook?"✅ 已启用（定时轮询时自动推送）":"未启用";
 }
 
 async function sendServerChan(key, title, content){
