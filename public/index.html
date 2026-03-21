@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>期货套利分析</title>
+<title>BR/NR 橡胶套利分析</title>
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -17,31 +17,64 @@ body{background:var(--bg);color:var(--t);font-family:'Segoe UI',system-ui,sans-s
 .tb{background:#0c2d48;color:var(--blue);border:1px solid #1f6feb}
 .tn{background:#0c2d1a;color:var(--green);border:1px solid #196c2e}
 .hdr-r{display:flex;align-items:center;gap:8px;font-size:.75rem;color:var(--t3)}
-#lupd{color:var(--t2)}
 .rbtn{padding:4px 11px;background:var(--bg3);border:1px solid var(--bd);border-radius:5px;color:var(--t2);cursor:pointer;font-size:.72rem;transition:all .15s}
 .rbtn:hover{border-color:var(--blue);color:var(--blue)}
-.layout{display:flex;height:calc(100vh - 50px)}
-.sb{width:205px;min-width:205px;background:var(--bg2);border-right:1px solid var(--bd);overflow-y:auto;flex-shrink:0}
-.sb-ttl{padding:7px 13px;font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:1px;font-weight:700}
-.pi{padding:7px 13px;cursor:pointer;border-left:3px solid transparent;transition:all .15s}
-.pi:hover{background:var(--bg3)}
-.pi.act{background:#1f2937;border-left-color:var(--blue)}
-.pi-nm{font-size:.85rem;font-weight:700;display:flex;justify-content:space-between;align-items:center}
-.pi-nt{font-size:.68rem;color:var(--t3);margin-top:1px}
-.zb{font-size:.7rem;padding:1px 5px;border-radius:7px;font-weight:600}
-.zh{background:#3d1a1a;color:var(--red)}
-.zm{background:#3d2b00;color:var(--yellow)}
-.zl{background:#0c2d1a;color:var(--green)}
-.sb-div{height:1px;background:var(--bd);margin:4px 13px}
-.csel{padding:7px 13px}
-.csel label{font-size:.67rem;color:var(--t3);display:block;margin-bottom:3px}
-.csel select{width:100%;background:var(--bg3);border:1px solid var(--bd);color:var(--t);padding:4px 7px;border-radius:4px;font-size:.75rem;cursor:pointer}
-.csel select:focus{outline:none;border-color:var(--blue)}
-.abtn{width:100%;margin-top:7px;padding:5px;background:var(--blue);border:none;border-radius:4px;color:#fff;font-size:.75rem;cursor:pointer;font-weight:600}
-.abtn:hover{background:#1f6feb}
-.ct{flex:1;overflow-y:auto;padding:12px 16px}
+.ysel{background:var(--bg3);border:1px solid var(--bd);color:var(--t2);padding:3px 7px;border-radius:5px;font-size:.72rem;cursor:pointer}
+.ct{padding:12px 16px;max-width:1400px;margin:0 auto}
+
+/* 投资建议面板 */
+.advice-panel{background:linear-gradient(135deg,#0d1f0d,#0d1729);border:1px solid #196c2e;border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.advice-title{font-size:.9rem;font-weight:700;color:var(--green);margin-bottom:12px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #196c2e;padding-bottom:8px}
+.advice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:12px}
+.advice-block{background:rgba(0,0,0,.3);border-radius:7px;padding:12px 14px}
+.advice-block h4{font-size:.72rem;color:var(--yellow);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:700}
+.formula{background:#0d1117;border-radius:5px;padding:8px 12px;font-family:'Courier New',monospace;font-size:.78rem;color:#79c0ff;margin:5px 0;border-left:3px solid var(--blue);line-height:1.7}
+.advice-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.75rem}
+.advice-row:last-child{border:none}
+.advice-key{color:var(--t3)}.advice-val{color:var(--t);font-weight:500}
+.advice-note{font-size:.7rem;color:var(--t3);margin-top:7px;line-height:1.5;font-style:italic}
+
+/* 信号栏 */
+.signal-big{border-radius:8px;padding:12px 16px;margin-bottom:14px;font-size:.85rem;border-left:5px solid;line-height:1.6;display:flex;align-items:flex-start;gap:10px}
+.signal-icon{font-size:1.4rem;flex-shrink:0;margin-top:2px}
+.signal-content h3{font-size:.9rem;font-weight:700;margin-bottom:4px}
+.signal-content p{font-size:.78rem;opacity:.85}
+.sok{background:#0a1a0f;border-color:var(--green);color:#7ee787}
+.swn{background:#1a150a;border-color:var(--yellow);color:#e3b341}
+.sdn{background:#1a0d0d;border-color:var(--red);color:#ffa198}
+
+/* 阈值设置 */
+.thresh-panel{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.thresh-title{font-size:.8rem;font-weight:700;color:var(--t2);margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.thresh-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.thresh-item{background:var(--bg3);border-radius:6px;padding:10px 12px}
+.thresh-item label{font-size:.68rem;color:var(--t3);display:block;margin-bottom:5px}
+.thresh-row{display:flex;align-items:center;gap:6px}
+.thresh-input{background:var(--bg);border:1px solid var(--bd);color:var(--t);padding:4px 8px;border-radius:4px;font-size:.8rem;width:80px;text-align:center}
+.thresh-input:focus{outline:none;border-color:var(--blue)}
+.thresh-hint{font-size:.65rem;color:var(--t3);margin-top:4px}
+.save-btn{padding:5px 14px;background:var(--blue);border:none;border-radius:4px;color:#fff;font-size:.75rem;cursor:pointer;font-weight:600}
+.save-btn:hover{background:#1f6feb}
+
+/* 提醒设置 */
+.alert-panel{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.alert-title{font-size:.8rem;font-weight:700;color:var(--t2);margin-bottom:10px}
+.alert-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.alert-item{background:var(--bg3);border-radius:6px;padding:10px 12px}
+.alert-item label{font-size:.68rem;color:var(--t3);display:block;margin-bottom:5px;font-weight:700}
+.alert-input{background:var(--bg);border:1px solid var(--bd);color:var(--t);padding:5px 8px;border-radius:4px;font-size:.78rem;width:100%}
+.alert-input:focus{outline:none;border-color:var(--blue)}
+.alert-hint{font-size:.65rem;color:var(--t3);margin-top:4px;line-height:1.4}
+.alert-toggle{display:flex;align-items:center;gap:7px;font-size:.75rem;color:var(--t2);cursor:pointer;margin-top:8px;user-select:none}
+.toggle-sw{width:34px;height:18px;background:var(--bd);border-radius:9px;position:relative;transition:background .2s;cursor:pointer;flex-shrink:0}
+.toggle-sw.on{background:var(--green)}
+.toggle-sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:left .2s}
+.toggle-sw.on::after{left:18px}
+.alert-status{font-size:.7rem;padding:5px 10px;background:var(--bg);border-radius:4px;border:1px solid var(--bd);margin-top:7px;color:var(--t3);line-height:1.4}
+
+/* 指标 */
 .mcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:7px;margin-bottom:10px}
-.mc{background:var(--bg2);border:1px solid var(--bd);border-radius:7px;padding:9px 11px}
+.mc-card{background:var(--bg2);border:1px solid var(--bd);border-radius:7px;padding:9px 11px}
 .ml{font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px}
 .mv{font-size:1.2rem;font-weight:700}
 .md{font-size:.68rem;margin-top:1px}
@@ -53,15 +86,9 @@ body{background:var(--bg);color:var(--t);font-family:'Segoe UI',system-ui,sans-s
 .crr-k{color:var(--t3)}.crr-v{font-weight:700}
 .cseg{width:44px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
 .cseg-f{height:100%;border-radius:2px}
-.sig{border-radius:6px;padding:7px 13px;margin-bottom:9px;font-size:.8rem;border-left:4px solid;line-height:1.5}
-.sok{background:#0a1a0f;border-color:var(--green);color:#7ee787}
-.swn{background:#1a150a;border-color:var(--yellow);color:#e3b341}
-.sdn{background:#1a0d0d;border-color:var(--red);color:#ffa198}
 .mr{display:flex;align-items:center;gap:7px;margin-bottom:9px}
 .mbtn{padding:4px 12px;border-radius:5px;border:1px solid var(--bd);background:var(--bg3);color:var(--t2);cursor:pointer;font-size:.75rem;transition:all .15s}
 .mbtn.act{background:#1f6feb;border-color:#1f6feb;color:#fff}
-.ysel{margin-left:auto;background:var(--bg3);border:1px solid var(--bd);color:var(--t2);padding:3px 7px;border-radius:5px;font-size:.72rem;cursor:pointer}
-.ysel:focus{outline:none;border-color:var(--blue)}
 .cbx{background:var(--bg2);border:1px solid var(--bd);border-radius:7px;padding:9px 11px;margin-bottom:9px}
 .cbx-hdr{font-size:.75rem;color:var(--t2);margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--bd)}
 #mc{width:100%;height:360px}#pc{width:100%;height:185px}#hc{width:100%;height:165px}
@@ -76,201 +103,559 @@ body{background:var(--bg);color:var(--t);font-family:'Segoe UI',system-ui,sans-s
 @keyframes spin{to{transform:rotate(360deg)}}
 .ov-t{color:var(--t2);font-size:.87rem}
 .ov.hide{display:none}
-.ft{text-align:center;padding:9px;font-size:.68rem;color:var(--t3);border-top:1px solid var(--bd)}
-@media(max-width:768px){.layout{flex-direction:column}.sb{width:100%;min-width:unset;height:auto;max-height:200px;border-right:none;border-bottom:1px solid var(--bd)}.sg{grid-template-columns:1fr}.mcs{grid-template-columns:repeat(3,1fr)}}
+.ft{text-align:center;padding:9px;font-size:.68rem;color:var(--t3);border-top:1px solid var(--bd);margin-top:4px}
+@media(max-width:768px){.sg{grid-template-columns:1fr}.mcs{grid-template-columns:repeat(3,1fr)}.advice-grid,.thresh-grid,.alert-grid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<div class="ov" id="ov"><div class="sp"></div><div class="ov-t" id="ovt">正在拉取最新行情数据...</div></div>
+<div class="ov" id="ov"><div class="sp"></div><div class="ov-t" id="ovt">正在拉取 BR/NR 最新行情...</div></div>
+
 <div class="hdr">
-  <div style="display:flex;align-items:center">
-    <h1>📊 期货套利分析</h1>
-    <div class="tags"><span class="tag tg">金牛</span><span class="tag tb">套利</span><span class="tag tn">中风险</span></div>
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:6px">
+    <h1>🔴 BR/NR 橡胶套利分析</h1>
+    <div class="tags"><span class="tag tg">套利</span><span class="tag tb">合成胶/20号胶</span><span class="tag tn">中风险</span></div>
   </div>
-  <div class="hdr-r">数据更新：<span id="lupd">—</span><button class="rbtn" onclick="refreshData()">🔄 刷新</button></div>
-</div>
-<div class="layout">
-  <div class="sb">
-    <div class="sb-ttl">推荐套利对</div>
-    <div id="pairList"></div>
-    <div class="sb-div"></div>
-    <div class="sb-ttl">自定义选品</div>
-    <div class="csel">
-      <label>品种 A（分子）</label><select id="selA"></select>
-      <label style="margin-top:7px">品种 B（分母）</label><select id="selB"></select>
-      <button class="abtn" onclick="applyCustom()">✓ 应用</button>
-    </div>
-  </div>
-  <div class="ct">
-    <div id="mcs" class="mcs"></div>
-    <div id="crr" class="crr"></div>
-    <div id="sig" class="sig sok"></div>
-    <div class="mr">
-      <button class="mbtn act" id="br" onclick="setMode('ratio')">比值 A/B</button>
-      <button class="mbtn" id="bd" onclick="setMode('diff')">价差 A-B</button>
-      <select class="ysel" id="ys" onchange="onYears()">
-        <option value="1">1年</option><option value="2">2年</option>
-        <option value="3" selected>3年</option><option value="5">5年</option>
-      </select>
-    </div>
-    <div class="cbx"><div class="cbx-hdr" id="mct"></div><div id="mc"></div></div>
-    <div class="cbx"><div class="cbx-hdr" id="pct"></div><div id="pc"></div></div>
-    <div class="sg" id="sg"></div>
-    <div class="cbx"><div class="cbx-hdr">分布直方图</div><div id="hc"></div></div>
-    <div class="ft">数据来源：新浪财经期货主力连续合约 &nbsp;|&nbsp; 仅供研究参考，不构成投资建议</div>
+  <div class="hdr-r">
+    数据更新：<span id="lupd">—</span>
+    <button class="rbtn" onclick="refreshData()">🔄 刷新</button>
+    <select class="ysel" id="ys" onchange="onYears()">
+      <option value="1">1年</option><option value="2">2年</option>
+      <option value="3" selected>3年</option><option value="5">5年</option>
+    </select>
   </div>
 </div>
+
+<div class="ct">
+
+  <!-- ① 投资建议 -->
+  <div class="advice-panel">
+    <div class="advice-title">📋 投资建议 · BR/NR 橡胶套利策略指引</div>
+    <div class="advice-grid">
+
+      <div class="advice-block">
+        <h4>📐 报价公式</h4>
+        <div class="formula">比值 = BR主力收盘价 ÷ NR主力收盘价</div>
+        <div class="formula">价差 = BR主力收盘价 − NR主力收盘价</div>
+        <div class="formula" id="formula-live">当前: BR — ÷ NR — = —</div>
+        <p class="advice-note">BR（上期所合成橡胶，10吨/手）与 NR（上期所20号胶，5吨/手）同属橡胶族，历史比值均值约 1.3~1.5，价差约 1500~3000元/吨。</p>
+      </div>
+
+      <div class="advice-block">
+        <h4>📌 下单公式（比值策略）</h4>
+        <div class="formula">做多套利：<br>买 1手BR + 卖 2手NR<br>当 比值 Z-Score ≤ −1.5（BR相对低估）</div>
+        <div class="formula">做空套利：<br>卖 1手BR + 买 2手NR<br>当 比值 Z-Score ≥ +1.5（BR相对高估）</div>
+        <div class="formula">平仓：Z-Score 回归至 |Z| ≤ 0.3</div>
+        <p class="advice-note">手数比例 1:2 基于名义价值对等（BR 10吨 ≈ NR 5吨×2）。实盘需核实当前合约规格。</p>
+      </div>
+
+      <div class="advice-block">
+        <h4>⚙️ 建议阈值（基于统计）</h4>
+        <div class="advice-row"><span class="advice-key">弱信号开仓</span><span class="advice-val" style="color:var(--yellow)">|Z| ≥ 1.5</span></div>
+        <div class="advice-row"><span class="advice-key">强信号开仓（高确信）</span><span class="advice-val" style="color:var(--red)">|Z| ≥ 2.0</span></div>
+        <div class="advice-row"><span class="advice-key">分位数做多区</span><span class="advice-val" style="color:var(--green)">分位 &lt; 20%</span></div>
+        <div class="advice-row"><span class="advice-key">分位数做空区</span><span class="advice-val" style="color:var(--red)">分位 &gt; 80%</span></div>
+        <div class="advice-row"><span class="advice-key">止盈（均值回归）</span><span class="advice-val" style="color:var(--green)">|Z| ≤ 0.3</span></div>
+        <div class="advice-row"><span class="advice-key">止损（趋势逃离）</span><span class="advice-val" style="color:var(--red)">|Z| ≥ 3.0</span></div>
+        <div class="advice-row"><span class="advice-key">历史回测胜率参考</span><span class="advice-val">~65~75%</span></div>
+        <p class="advice-note">以上均为统计经验值。可在下方"自定义阈值"中按自己风格调整。</p>
+      </div>
+
+      <div class="advice-block">
+        <h4>⚠️ 风险提示</h4>
+        <div class="advice-row"><span class="advice-key">主要风险</span><span class="advice-val">政策/供应冲击</span></div>
+        <div class="advice-row"><span class="advice-key">合约规格差异</span><span class="advice-val">换月需重新核算</span></div>
+        <div class="advice-row"><span class="advice-key">NR流动性</span><span class="advice-val">成交量相对较低</span></div>
+        <div class="advice-row"><span class="advice-key">基差风险</span><span class="advice-val">换月时比值跳变</span></div>
+        <div class="advice-row"><span class="advice-key">建议单品仓位</span><span class="advice-val">不超过总仓 15%</span></div>
+        <div class="advice-row"><span class="advice-key">套利配对仓位</span><span class="advice-val">1手BR + 2手NR</span></div>
+        <p class="advice-note">本工具仅供研究参考，不构成任何投资建议，盈亏责任自负。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 实时信号 -->
+  <div id="sig" class="signal-big sok">
+    <div class="signal-icon" id="sig-icon">⏳</div>
+    <div class="signal-content">
+      <h3 id="sig-title">加载中...</h3>
+      <p id="sig-desc">正在获取最新数据</p>
+    </div>
+  </div>
+
+  <!-- 指标卡 -->
+  <div id="mcs" class="mcs"></div>
+  <div id="crr" class="crr"></div>
+
+  <!-- ② 阈值设置 -->
+  <div class="thresh-panel">
+    <div class="thresh-title">
+      <span>⚙️ 自定义下单阈值</span>
+      <button class="save-btn" onclick="saveThresh()">💾 保存并应用</button>
+    </div>
+    <div class="thresh-grid">
+      <div class="thresh-item">
+        <label>开仓 Z-Score 阈值（绝对值）</label>
+        <div class="thresh-row">
+          <input type="number" class="thresh-input" id="t-open" value="1.5" step="0.1" min="0.5" max="3">
+          <span style="font-size:.7rem;color:var(--yellow)">推荐 1.5</span>
+        </div>
+        <div class="thresh-hint">|Z| ≥ 此值时出现开仓提示</div>
+      </div>
+      <div class="thresh-item">
+        <label>强信号 Z-Score 阈值</label>
+        <div class="thresh-row">
+          <input type="number" class="thresh-input" id="t-strong" value="2.0" step="0.1" min="1" max="4">
+          <span style="font-size:.7rem;color:var(--red)">推荐 2.0</span>
+        </div>
+        <div class="thresh-hint">|Z| ≥ 此值时触发通知提醒</div>
+      </div>
+      <div class="thresh-item">
+        <label>止盈 Z-Score 阈值</label>
+        <div class="thresh-row">
+          <input type="number" class="thresh-input" id="t-tp" value="0.3" step="0.1" min="0" max="1">
+          <span style="font-size:.7rem;color:var(--green)">推荐 0.3</span>
+        </div>
+        <div class="thresh-hint">|Z| ≤ 此值时建议平仓</div>
+      </div>
+      <div class="thresh-item">
+        <label>止损 Z-Score 阈值</label>
+        <div class="thresh-row">
+          <input type="number" class="thresh-input" id="t-sl" value="3.0" step="0.1" min="2" max="5">
+          <span style="font-size:.7rem;color:var(--red)">推荐 3.0</span>
+        </div>
+        <div class="thresh-hint">|Z| ≥ 此值时建议止损出场</div>
+      </div>
+      <div class="thresh-item">
+        <label>开仓分位下界（做多）</label>
+        <div class="thresh-row">
+          <input type="number" class="thresh-input" id="t-plo" value="20" step="1" min="5" max="40">
+          <span style="font-size:.7rem;color:var(--green)">推荐 20</span>
+        </div>
+        <div class="thresh-hint">分位 &lt; 此值 → 买BR卖NR</div>
+      </div>
+      <div class="thresh-item">
+        <label>开仓分位上界（做空）</label>
+        <div class="thresh-row">
+          <input type="number" class="thresh-input" id="t-phi" value="80" step="1" min="60" max="95">
+          <span style="font-size:.7rem;color:var(--red)">推荐 80</span>
+        </div>
+        <div class="thresh-hint">分位 &gt; 此值 → 卖BR买NR</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ 提醒设置 -->
+  <div class="alert-panel">
+    <div class="alert-title">🔔 提醒设置（达到阈值时自动通知）</div>
+    <div class="alert-grid">
+      <div class="alert-item">
+        <label>🔔 浏览器桌面通知（推荐）</label>
+        <div class="alert-hint" style="margin-bottom:8px">无需任何配置，页面开着时自动弹出系统通知</div>
+        <div class="alert-toggle" onclick="requestNotifPerm()">
+          <div class="toggle-sw" id="sw-notif"></div>
+          <span id="notif-label">启用桌面通知</span>
+        </div>
+        <div class="alert-status" id="notif-status">状态：未授权（点上方按钮授权）</div>
+      </div>
+      <div class="alert-item">
+        <label>⏱ 自动检查频率</label>
+        <select class="alert-input" id="alert-freq" onchange="setAlertTimer()">
+          <option value="0">关闭自动检查</option>
+          <option value="300000">每5分钟</option>
+          <option value="600000" selected>每10分钟</option>
+          <option value="1800000">每30分钟</option>
+          <option value="3600000">每1小时</option>
+        </select>
+        <div class="alert-hint">保持页面开启，自动刷新数据并检查阈值是否触发</div>
+        <div class="alert-status" id="alert-timer-status">未启动</div>
+      </div>
+      <div class="alert-item">
+        <label>📱 微信机器人 / Server酱 推送</label>
+        <input type="text" class="alert-input" id="alert-webhook" placeholder="https://sctapi.ftqq.com/xxxxx.send 或企业微信Webhook">
+        <div class="alert-hint">
+          推荐用 <strong style="color:var(--blue)">Server酱</strong>（ftqq.com，免费）：注册后获取 SendKey，填入 https://sctapi.ftqq.com/你的SendKey.send<br>
+          或填企业微信机器人 Webhook URL
+        </div>
+        <div class="alert-toggle" onclick="toggleWebhook()">
+          <div class="toggle-sw" id="sw-webhook"></div>
+          <span>启用 Webhook 推送</span>
+        </div>
+        <div class="alert-status" id="webhook-status">未启用</div>
+      </div>
+      <div class="alert-item">
+        <label>📧 邮件提醒（EmailJS）</label>
+        <input type="email" class="alert-input" id="alert-email" placeholder="your@email.com" style="margin-bottom:5px">
+        <input type="text" class="alert-input" id="emailjs-service" placeholder="EmailJS Service ID (可选)">
+        <div class="alert-hint">填邮箱后配合 EmailJS 服务发送提醒邮件。若不配置，仅启用桌面通知即可。</div>
+        <div class="alert-toggle" onclick="toggleEmail()">
+          <div class="toggle-sw" id="sw-email"></div>
+          <span>启用邮件提醒</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 图表 -->
+  <div class="mr">
+    <button class="mbtn act" id="br-btn" onclick="setMode('ratio')">比值 BR/NR</button>
+    <button class="mbtn" id="bd-btn" onclick="setMode('diff')">价差 BR-NR</button>
+  </div>
+  <div class="cbx"><div class="cbx-hdr" id="mct">BR/NR 比值走势</div><div id="mc"></div></div>
+  <div class="cbx"><div class="cbx-hdr">BR / NR 价格走势对比（双轴）</div><div id="pc"></div></div>
+  <div class="sg" id="sg"></div>
+  <div class="cbx"><div class="cbx-hdr">分布直方图（红色竖线 = 当前位置）</div><div id="hc"></div></div>
+  <div class="ft">数据来源：新浪财经期货主力连续合约 · 1小时缓存 · 仅供研究参考，不构成投资建议</div>
+</div>
+
 <script>
-const API = window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'
+const API = (window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1')
   ? `http://${window.location.host}` : window.location.origin;
 
-const SYMS=["BR","RU","NR","BU","FU","SC","L","PP","EB","PG","V","MA","TA","EG","CU","AL","ZN","AU","AG","I","J","JM","M","Y","P","OI","C","CF","SR","RM"];
-const SN={BR:"合成橡胶",RU:"天然橡胶",NR:"20号胶",BU:"沥青",FU:"燃料油",SC:"原油",L:"聚乙烯",PP:"聚丙烯",EB:"苯乙烯",PG:"液化气",V:"PVC",MA:"甲醇",TA:"PTA",EG:"乙二醇",CU:"铜",AL:"铝",ZN:"锌",AU:"黄金",AG:"白银",I:"铁矿石",J:"焦炭",JM:"焦煤",M:"豆粕",Y:"豆油",P:"棕榈油",OI:"菜油",C:"玉米",CF:"棉花",SR:"白糖",RM:"菜粕"};
+let mode="ratio", yrs=3, D=null;
+let mc_chart, pc_chart, hc_chart;
+let alertTimer = null;
+let lastAlertTime = 0;
 
-let cA="BR",cB="NR",mode="ratio",yrs=3,D=null,rPairs=[];
-let mc,pc,hc;
+// 阈值
+let T = {open:1.5, strong:2.0, tp:0.3, sl:3.0, plo:20, phi:80};
+let alertCfg = {notif:false, webhook:false, webhookUrl:"", email:false, emailAddr:""};
+
+function loadSettings(){
+  try{
+    const s = localStorage.getItem("arb_thresh_v2");
+    if(s) T = {...T, ...JSON.parse(s)};
+    const a = localStorage.getItem("arb_alert_v2");
+    if(a) alertCfg = {...alertCfg, ...JSON.parse(a)};
+  }catch(e){}
+
+  document.getElementById("t-open").value = T.open;
+  document.getElementById("t-strong").value = T.strong;
+  document.getElementById("t-tp").value = T.tp;
+  document.getElementById("t-sl").value = T.sl;
+  document.getElementById("t-plo").value = T.plo;
+  document.getElementById("t-phi").value = T.phi;
+
+  if(alertCfg.webhookUrl) document.getElementById("alert-webhook").value = alertCfg.webhookUrl;
+  if(alertCfg.emailAddr)  document.getElementById("alert-email").value = alertCfg.emailAddr;
+  if(alertCfg.webhook) document.getElementById("sw-webhook").classList.add("on");
+  if(alertCfg.email)   document.getElementById("sw-email").classList.add("on");
+
+  updateNotifStatus();
+  setAlertTimer();
+}
+
+function saveThresh(){
+  T = {
+    open: parseFloat(document.getElementById("t-open").value)||1.5,
+    strong: parseFloat(document.getElementById("t-strong").value)||2.0,
+    tp: parseFloat(document.getElementById("t-tp").value)||0.3,
+    sl: parseFloat(document.getElementById("t-sl").value)||3.0,
+    plo: parseFloat(document.getElementById("t-plo").value)||20,
+    phi: parseFloat(document.getElementById("t-phi").value)||80,
+  };
+  localStorage.setItem("arb_thresh_v2", JSON.stringify(T));
+  if(D) renderSignal(D);
+  alert("✅ 阈值已保存并应用！");
+}
+
+function updateNotifStatus(){
+  const sw = document.getElementById("sw-notif");
+  const lbl = document.getElementById("notif-label");
+  const st = document.getElementById("notif-status");
+  if(!("Notification" in window)){
+    st.textContent="浏览器不支持通知"; return;
+  }
+  if(Notification.permission==="granted"){
+    sw.classList.add("on"); alertCfg.notif=true;
+    lbl.textContent="桌面通知已启用";
+    st.textContent="状态：已授权 ✅ 达到阈值时会弹出系统通知";
+    st.style.color="var(--green)";
+  } else if(Notification.permission==="denied"){
+    st.textContent="状态：已被拒绝 ❌ 请在浏览器设置中重新允许";
+    st.style.color="var(--red)";
+  } else {
+    st.textContent="状态：未授权，点上方开关申请权限";
+  }
+}
+
+function requestNotifPerm(){
+  if(!("Notification" in window)){alert("当前浏览器不支持桌面通知");return;}
+  if(Notification.permission==="granted"){ updateNotifStatus(); return; }
+  Notification.requestPermission().then(()=>updateNotifStatus());
+}
+
+function toggleWebhook(){
+  alertCfg.webhookUrl = document.getElementById("alert-webhook").value.trim();
+  if(!alertCfg.webhookUrl){alert("请先填写 Webhook URL");return;}
+  alertCfg.webhook = !alertCfg.webhook;
+  document.getElementById("sw-webhook").classList.toggle("on", alertCfg.webhook);
+  document.getElementById("webhook-status").textContent = alertCfg.webhook
+    ? `已启用：${alertCfg.webhookUrl.substring(0,40)}...` : "未启用";
+  saveAlertCfg();
+}
+
+function toggleEmail(){
+  alertCfg.emailAddr = document.getElementById("alert-email").value.trim();
+  if(!alertCfg.emailAddr){alert("请先填写邮箱地址");return;}
+  alertCfg.email = !alertCfg.email;
+  document.getElementById("sw-email").classList.toggle("on", alertCfg.email);
+  saveAlertCfg();
+}
+
+function saveAlertCfg(){
+  alertCfg.webhookUrl = document.getElementById("alert-webhook").value.trim();
+  alertCfg.emailAddr  = document.getElementById("alert-email").value.trim();
+  localStorage.setItem("arb_alert_v2", JSON.stringify(alertCfg));
+}
+
+function setAlertTimer(){
+  if(alertTimer) clearInterval(alertTimer);
+  const freq = parseInt(document.getElementById("alert-freq").value)||0;
+  const el = document.getElementById("alert-timer-status");
+  if(!freq){ el.textContent="自动检查已关闭"; return; }
+  el.textContent = `每 ${freq/60000} 分钟自动刷新并检查阈值 ✅`;
+  el.style.color="var(--green)";
+  alertTimer = setInterval(()=>{
+    loadPair(true); // 静默刷新
+  }, freq);
+}
+
+async function fireAlert(title, body){
+  const now = Date.now();
+  if(now - lastAlertTime < 60000) return; // 1分钟内不重复
+  lastAlertTime = now;
+
+  // 桌面通知
+  if(alertCfg.notif && Notification.permission==="granted"){
+    new Notification(`🔔 BR/NR套利: ${title}`, {body, icon:"https://cdn.jsdelivr.net/npm/twemoji@14/2/svg/1f4ca.svg"});
+  }
+
+  // Webhook (Server酱 / 企业微信)
+  if(alertCfg.webhook && alertCfg.webhookUrl){
+    const url = alertCfg.webhookUrl;
+    const msg = `BR/NR套利信号: ${title}\n${body}`;
+    try{
+      if(url.includes("ftqq.com") || url.includes("sctapi")){
+        // Server酱
+        const u = new URL(url);
+        u.searchParams.set("title", `BR/NR套利信号: ${title}`);
+        u.searchParams.set("desp", body);
+        await fetch(u.toString(), {method:"GET", mode:"no-cors"});
+      } else {
+        // 企业微信机器人
+        await fetch(url, {
+          method:"POST", mode:"no-cors",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({msgtype:"text", text:{content: msg}})
+        });
+      }
+    }catch(e){console.log("Webhook error:",e)}
+  }
+}
 
 function showOv(t){document.getElementById("ov").classList.remove("hide");document.getElementById("ovt").textContent=t}
 function hideOv(){document.getElementById("ov").classList.add("hide")}
 
-async function init(){
-  const sa=document.getElementById("selA"),sb2=document.getElementById("selB");
-  SYMS.forEach(s=>{const o=`<option value="${s}">${s} - ${SN[s]||s}</option>`;sa.insertAdjacentHTML("beforeend",o);sb2.insertAdjacentHTML("beforeend",o)});
-  sa.value=cA;sb2.value=cB;
-  try{const r=await fetch(`${API}/api/symbols`);const j=await r.json();rPairs=j.recommended_pairs||[]}catch(e){rPairs=[]}
-  buildSB();
-  await loadPair(cA,cB);
-}
-
-function buildSB(bd){
-  const el=document.getElementById("pairList");el.innerHTML="";
-  rPairs.forEach(p=>{
-    const bx=bd?bd.find(x=>x.a===p.a&&x.b===p.b):null;
-    const z=bx?bx.ratio_z:null;
-    let zb="";
-    if(z!==null&&z!==undefined){const c=Math.abs(z)>2?"zh":Math.abs(z)>1?"zm":"zl";zb=`<span class="zb ${c}">Z${z>=0?"+":""}${z.toFixed(2)}</span>`}
-    const isA=p.a===cA&&p.b===cB;
-    const div=document.createElement("div");
-    div.className="pi"+(isA?" act":"");
-    div.innerHTML=`<div class="pi-nm"><span>${p.a}/${p.b}</span>${zb}</div><div class="pi-nt">${SN[p.a]||p.a} / ${SN[p.b]||p.b} · ${p.note}</div>`;
-    div.onclick=()=>{cA=p.a;cB=p.b;document.getElementById("selA").value=cA;document.getElementById("selB").value=cB;document.querySelectorAll(".pi").forEach(x=>x.classList.remove("act"));div.classList.add("act");loadPair(cA,cB)};
-    el.appendChild(div);
-  });
-}
-
-async function loadPair(a,b){
-  showOv(`正在拉取 ${a}/${b} 行情数据（约5~15秒）...`);
+async function loadPair(silent=false){
+  if(!silent) showOv("正在拉取 BR/NR 最新行情（约5~15秒）...");
   try{
-    const r=await fetch(`${API}/api/pair?a=${a}&b=${b}&years=${yrs}`);
-    if(!r.ok)throw new Error(await r.text());
-    D=await r.json();
-    if(D.error)throw new Error(D.error);
+    const r = await fetch(`${API}/api/pair?a=BR&b=NR&years=${yrs}`);
+    if(!r.ok) throw new Error(await r.text());
+    D = await r.json();
+    if(D.error) throw new Error(D.error);
     render();
-    document.getElementById("lupd").textContent=new Date().toLocaleTimeString("zh-CN");
-    fetchBatch();
-  }catch(e){alert("加载失败："+e.message)}
-  finally{hideOv()}
+    document.getElementById("lupd").textContent = new Date().toLocaleTimeString("zh-CN");
+  }catch(e){
+    if(!silent) alert("加载失败："+e.message);
+  }finally{
+    hideOv();
+  }
 }
 
-async function fetchBatch(){
-  try{const r=await fetch(`${API}/api/batch?years=${yrs}`);const b=await r.json();buildSB(b)}catch(e){}
+function refreshData(){ loadPair(false); }
+function setMode(m){
+  mode=m;
+  document.getElementById("br-btn").className="mbtn"+(m==="ratio"?" act":"");
+  document.getElementById("bd-btn").className="mbtn"+(m==="diff"?" act":"");
+  if(D) render();
 }
+function onYears(){ yrs=parseInt(document.getElementById("ys").value); loadPair(false); }
 
-function refreshData(){loadPair(cA,cB)}
-function applyCustom(){const a=document.getElementById("selA").value,b=document.getElementById("selB").value;if(a===b){alert("品种不能相同");return}cA=a;cB=b;document.querySelectorAll(".pi").forEach(x=>x.classList.remove("act"));loadPair(a,b)}
-function setMode(m){mode=m;document.getElementById("br").className="mbtn"+(m==="ratio"?" act":"");document.getElementById("bd").className="mbtn"+(m==="diff"?" act":"");if(D)render()}
-function onYears(){yrs=parseInt(document.getElementById("ys").value);loadPair(cA,cB)}
+function renderSignal(d){
+  const ir = mode==="ratio";
+  const st = ir ? d.ratio_stats : d.diff_stats;
+  const az = Math.abs(st.z);
+  const lb = ir ? "BR/NR 比值" : "BR-NR 价差";
+  const sigEl = document.getElementById("sig");
+  const icon  = document.getElementById("sig-icon");
+  const title = document.getElementById("sig-title");
+  const desc  = document.getElementById("sig-desc");
+
+  let sc, ic, tt, dd, alertNeeded=false, alertTitle="", alertBody="";
+
+  if(az >= T.sl){
+    sc="sdn"; ic="🛑";
+    tt=`止损警告：${lb} Z=${st.z.toFixed(2)}（超过±${T.sl}σ 止损线）`;
+    dd=`比值极度偏离均值，建议止损出场或严格风控。当前分位：P${st.pct.toFixed(1)}`;
+    alertNeeded=true; alertTitle=tt; alertBody=dd;
+  } else if(az >= T.strong){
+    const dir = st.z > 0 ? "偏高 → 做空BR/做多NR" : "偏低 → 做多BR/做空NR";
+    sc="sdn"; ic="🔥";
+    tt=`强开仓信号：${lb} Z=${st.z.toFixed(2)}（超过±${T.strong}σ）`;
+    dd=`${dir}。当前分位：P${st.pct.toFixed(1)}。建议以1手BR对2手NR比例建仓。`;
+    alertNeeded=true; alertTitle=tt; alertBody=dd;
+  } else if(az >= T.open){
+    const dir = st.z > 0 ? "略偏高 → 可考虑做空BR/做多NR" : "略偏低 → 可考虑做多BR/做空NR";
+    sc="swn"; ic="⚠️";
+    tt=`弱开仓信号：${lb} Z=${st.z.toFixed(2)}（超过±${T.open}σ）`;
+    dd=`${dir}。当前分位：P${st.pct.toFixed(1)}，持续观察。`;
+  } else if(az <= T.tp){
+    sc="sok"; ic="✅";
+    tt=`均值回归：${lb} Z=${st.z.toFixed(2)}（|Z| ≤ ${T.tp}）`;
+    dd=`价差已回归均值，持仓可考虑止盈平仓。当前分位：P${st.pct.toFixed(1)}`;
+  } else {
+    sc="sok"; ic="📊";
+    tt=`观望区间：${lb} Z=${st.z.toFixed(2)}（±${T.open}σ 内）`;
+    dd=`价差处于正常波动范围，暂无明显套利机会。当前分位：P${st.pct.toFixed(1)}`;
+  }
+
+  // 分位额外检查
+  if(st.pct < T.plo && az >= T.open){
+    dd += ` 📌 分位数 ${st.pct.toFixed(1)}% < ${T.plo}%，做多BR/做空NR信号叠加确认。`;
+  } else if(st.pct > T.phi && az >= T.open){
+    dd += ` 📌 分位数 ${st.pct.toFixed(1)}% > ${T.phi}%，做空BR/做多NR信号叠加确认。`;
+  }
+
+  sigEl.className = `signal-big ${sc}`;
+  icon.textContent = ic;
+  title.textContent = tt;
+  desc.textContent = dd;
+
+  if(alertNeeded) fireAlert(alertTitle, alertBody);
+}
 
 function render(){
-  const d=D,ir=mode==="ratio";
-  const sp=ir?d.ratio:d.diff,st=ir?d.ratio_stats:d.diff_stats;
-  const bm=ir?d.boll_mid_r:d.boll_mid_d,bu=ir?d.boll_up_r:d.boll_up_d,bl=ir?d.boll_dn_r:d.boll_dn_d;
-  const lb=ir?`${d.sym_a}/${d.sym_b} 比值`:`${d.sym_a}-${d.sym_b} 价差`;
-  const dp=ir?4:2;
+  const d = D;
+  const ir = mode==="ratio";
+  const sp = ir ? d.ratio : d.diff;
+  const st = ir ? d.ratio_stats : d.diff_stats;
+  const bm = ir ? d.boll_mid_r : d.boll_mid_d;
+  const bu = ir ? d.boll_up_r  : d.boll_up_d;
+  const bl = ir ? d.boll_dn_r  : d.boll_dn_d;
+  const lb = ir ? "BR/NR 比值" : "BR-NR 价差（元/吨）";
+  const dp = ir ? 4 : 2;
 
-  // metrics
-  const vld=sp.filter(x=>x!==null);const prev=vld[vld.length-2]??st.cur;const dlt=st.cur-prev;
-  const ds=(dlt>=0?"+":"")+dlt.toFixed(dp),dc=dlt>0?"up":dlt<0?"dn":"fl";
-  document.getElementById("mcs").innerHTML=`
-    <div class="mc"><div class="ml">当前${ir?"比率":"价差"}</div><div class="mv">${st.cur.toFixed(dp)}</div><div class="md ${dc}">${ds}</div></div>
-    <div class="mc"><div class="ml">均值</div><div class="mv">${st.mean.toFixed(dp)}</div></div>
-    <div class="mc"><div class="ml">标准差</div><div class="mv">${st.std.toFixed(dp)}</div></div>
-    <div class="mc"><div class="ml">当前分位</div><div class="mv">P${st.pct.toFixed(1)}</div></div>
-    <div class="mc"><div class="ml">${d.sym_a}(${SN[d.sym_a]||""}) 最新</div><div class="mv">${d.ca_last}</div></div>
-    <div class="mc"><div class="ml">${d.sym_b}(${SN[d.sym_b]||""}) 最新</div><div class="mv">${d.cb_last}</div></div>`;
+  // 更新报价公式
+  document.getElementById("formula-live").textContent =
+    `当前: BR ${d.ca_last} ÷ NR ${d.cb_last} = ${d.ratio_stats.cur.toFixed(4)}  |  价差: ${d.diff_stats.cur.toFixed(0)} 元/吨`;
 
-  // corr
-  const ci=Object.entries(d.corr).map(([k,v])=>{const c=v>0.6?"var(--green)":v>0.3?"var(--yellow)":"var(--red)";return`<div class="crr-i"><span class="crr-k">${k}</span><span class="crr-v" style="color:${c}">${v.toFixed(2)}</span><div class="cseg"><div class="cseg-f" style="width:${Math.abs(v)*100}%;background:${c}"></div></div></div>`}).join("");
-  document.getElementById("crr").innerHTML=`<span class="crr-t">📊 相关性</span><div class="crr-is">${ci}</div>`;
+  // 信号
+  renderSignal(d);
 
-  // signal
-  const az=Math.abs(st.z);let sc="sok",st2="";
-  if(az>2){sc="sdn";st2=`⚠️ ${lb} Z-Score=${st.z.toFixed(2)}，显著${st.z>0?"偏高":"偏低"}（超过±2σ），存在均值回归机会`}
-  else if(az>1){sc="swn";st2=`📍 ${lb} Z-Score=${st.z.toFixed(2)}，${st.z>0?"略高":"略低"}（±1~2σ），可关注`}
-  else{st2=`✅ ${lb} Z-Score=${st.z.toFixed(2)}，处于正常波动范围（±1σ）`}
-  const se=document.getElementById("sig");se.className=`sig ${sc}`;se.textContent=st2;
+  // 指标卡
+  const vld = sp.filter(x=>x!==null);
+  const prev = vld[vld.length-2] ?? st.cur;
+  const dlt = st.cur - prev;
+  const ds = (dlt>=0?"+":"")+dlt.toFixed(dp);
+  const dc = dlt>0?"up":dlt<0?"dn":"fl";
+  const zc = Math.abs(st.z)>=T.strong?"dn":Math.abs(st.z)>=T.open?"fl":"up";
+  document.getElementById("mcs").innerHTML = `
+    <div class="mc-card"><div class="ml">当前${ir?"比值":"价差"}</div><div class="mv">${st.cur.toFixed(dp)}</div><div class="md ${dc}">${ds}</div></div>
+    <div class="mc-card"><div class="ml">历史均值</div><div class="mv">${st.mean.toFixed(dp)}</div></div>
+    <div class="mc-card"><div class="ml">标准差σ</div><div class="mv">${st.std.toFixed(dp)}</div></div>
+    <div class="mc-card"><div class="ml">Z-Score</div><div class="mv ${zc}">${st.z.toFixed(3)}</div></div>
+    <div class="mc-card"><div class="ml">当前分位</div><div class="mv">P${st.pct.toFixed(1)}</div></div>
+    <div class="mc-card"><div class="ml">BR 最新价</div><div class="mv">${d.ca_last}</div></div>
+    <div class="mc-card"><div class="ml">NR 最新价</div><div class="mv">${d.cb_last}</div></div>
+    <div class="mc-card"><div class="ml">最新日期</div><div class="mv" style="font-size:.85rem">${d.last_date}</div></div>`;
 
-  document.getElementById("mct").textContent=`${lb} 走势（${yrs}年）· 布林带 · P5/均值/P95`;
-  document.getElementById("pct").textContent=`${d.sym_a}(${SN[d.sym_a]||""}) / ${d.sym_b}(${SN[d.sym_b]||""}) 价格走势`;
+  // 相关性
+  const ci = Object.entries(d.corr).map(([k,v])=>{
+    const c = v>0.6?"var(--green)":v>0.3?"var(--yellow)":"var(--red)";
+    return `<div class="crr-i"><span class="crr-k">${k}</span><span class="crr-v" style="color:${c}">${v.toFixed(2)}</span><div class="cseg"><div class="cseg-f" style="width:${Math.abs(v)*100}%;background:${c}"></div></div></div>`;
+  }).join("");
+  document.getElementById("crr").innerHTML = `<span class="crr-t">📊 BR/NR 相关性</span><div class="crr-is">${ci}</div>`;
 
-  // main chart
-  if(!mc)mc=echarts.init(document.getElementById("mc"),"dark");
-  mc.setOption({backgroundColor:"#161b22",grid:{left:56,right:105,top:34,bottom:34},
+  document.getElementById("mct").textContent = `${lb} 走势（${yrs}年）· 布林带 · P5/均值/P95`;
+
+  // 主图
+  if(!mc_chart) mc_chart = echarts.init(document.getElementById("mc"),"dark");
+  mc_chart.setOption({
+    backgroundColor:"#161b22",
+    grid:{left:60,right:110,top:36,bottom:36},
     tooltip:{trigger:"axis",axisPointer:{type:"cross"},backgroundColor:"#21262d",borderColor:"#30363d",textStyle:{color:"#c9d1d9",fontSize:11}},
-    legend:{top:5,right:5,textStyle:{color:"#8b949e",fontSize:10},itemWidth:14,itemHeight:8},
+    legend:{top:6,right:6,textStyle:{color:"#8b949e",fontSize:10},itemWidth:14,itemHeight:8},
     xAxis:{type:"category",data:d.dates,boundaryGap:false,axisLine:{lineStyle:{color:"#30363d"}},axisLabel:{color:"#6e7681",fontSize:10,interval:Math.floor(d.dates.length/7)},splitLine:{show:false}},
     yAxis:{type:"value",scale:true,axisLine:{lineStyle:{color:"#30363d"}},axisLabel:{color:"#6e7681",fontSize:10},splitLine:{lineStyle:{color:"#21262d",type:"dashed"}}},
     series:[
-      {name:lb,type:"line",data:sp,lineStyle:{color:"#4fc3f7",width:1.8},symbol:"none",z:10},
-      {name:"布林上",type:"line",data:bu,lineStyle:{color:"#f85149",width:1,type:"dashed"},symbol:"none",z:5},
-      {name:"布林中",type:"line",data:bm,lineStyle:{color:"#ffd740",width:1,type:"dashed"},symbol:"none",z:5},
-      {name:"布林下",type:"line",data:bl,lineStyle:{color:"#3fb950",width:1,type:"dashed"},symbol:"none",z:5,areaStyle:{color:{type:"linear",x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:"rgba(63,185,80,.07)"},{offset:1,color:"rgba(63,185,80,0)"}]}}},
-      {name:"P95",type:"line",data:new Array(d.dates.length).fill(st.p95),lineStyle:{color:"rgba(248,81,73,.4)",width:1,type:"dotted"},symbol:"none",z:3},
-      {name:"均值线",type:"line",data:new Array(d.dates.length).fill(st.mean),lineStyle:{color:"rgba(255,215,64,.5)",width:1,type:"dotted"},symbol:"none",z:3},
-      {name:"P5",type:"line",data:new Array(d.dates.length).fill(st.p5),lineStyle:{color:"rgba(63,185,80,.4)",width:1,type:"dotted"},symbol:"none",z:3},
-    ]},true);
+      {name:lb,type:"line",data:sp,lineStyle:{color:"#4fc3f7",width:2},symbol:"none",z:10},
+      {name:"布林上轨",type:"line",data:bu,lineStyle:{color:"#f85149",width:1,type:"dashed"},symbol:"none",z:5},
+      {name:"布林中轨",type:"line",data:bm,lineStyle:{color:"#ffd740",width:1,type:"dashed"},symbol:"none",z:5},
+      {name:"布林下轨",type:"line",data:bl,lineStyle:{color:"#3fb950",width:1,type:"dashed"},symbol:"none",z:5,
+        areaStyle:{color:{type:"linear",x:0,y:0,x2:0,y2:1,colorStops:[{offset:0,color:"rgba(63,185,80,.06)"},{offset:1,color:"rgba(63,185,80,0)"}]}}},
+      {name:"P95",type:"line",data:new Array(d.dates.length).fill(st.p95),lineStyle:{color:"rgba(248,81,73,.35)",width:1,type:"dotted"},symbol:"none",z:3},
+      {name:"均值",type:"line",data:new Array(d.dates.length).fill(st.mean),lineStyle:{color:"rgba(255,215,64,.45)",width:1,type:"dotted"},symbol:"none",z:3},
+      {name:"P5",type:"line",data:new Array(d.dates.length).fill(st.p5),lineStyle:{color:"rgba(63,185,80,.35)",width:1,type:"dotted"},symbol:"none",z:3},
+    ]
+  },true);
 
-  // price chart
-  if(!pc)pc=echarts.init(document.getElementById("pc"),"dark");
-  pc.setOption({backgroundColor:"#161b22",grid:{left:56,right:70,top:24,bottom:30},
+  // 价格对比图
+  if(!pc_chart) pc_chart = echarts.init(document.getElementById("pc"),"dark");
+  pc_chart.setOption({
+    backgroundColor:"#161b22",
+    grid:{left:56,right:70,top:24,bottom:30},
     tooltip:{trigger:"axis",backgroundColor:"#21262d",borderColor:"#30363d",textStyle:{color:"#c9d1d9",fontSize:11}},
     legend:{top:3,right:5,textStyle:{color:"#8b949e",fontSize:9},itemWidth:12,itemHeight:7},
     xAxis:{type:"category",data:d.dates,boundaryGap:false,axisLabel:{color:"#6e7681",fontSize:9,interval:Math.floor(d.dates.length/6)},axisLine:{lineStyle:{color:"#30363d"}},splitLine:{show:false}},
-    yAxis:[{type:"value",scale:true,name:d.sym_a,nameTextStyle:{color:"#4fc3f7",fontSize:9},axisLabel:{color:"#4fc3f7",fontSize:9},splitLine:{lineStyle:{color:"#21262d",type:"dashed"}}},{type:"value",scale:true,name:d.sym_b,nameTextStyle:{color:"#ce93d8",fontSize:9},axisLabel:{color:"#ce93d8",fontSize:9},splitLine:{show:false}}],
-    series:[{name:d.sym_a,type:"line",data:d.ca,yAxisIndex:0,lineStyle:{color:"#4fc3f7",width:1.2},symbol:"none"},{name:d.sym_b,type:"line",data:d.cb,yAxisIndex:1,lineStyle:{color:"#ce93d8",width:1.2},symbol:"none"}]},true);
+    yAxis:[
+      {type:"value",scale:true,name:"BR",nameTextStyle:{color:"#4fc3f7",fontSize:9},axisLabel:{color:"#4fc3f7",fontSize:9},splitLine:{lineStyle:{color:"#21262d",type:"dashed"}}},
+      {type:"value",scale:true,name:"NR",nameTextStyle:{color:"#ce93d8",fontSize:9},axisLabel:{color:"#ce93d8",fontSize:9},splitLine:{show:false}}
+    ],
+    series:[
+      {name:"BR",type:"line",data:d.ca,yAxisIndex:0,lineStyle:{color:"#4fc3f7",width:1.3},symbol:"none"},
+      {name:"NR",type:"line",data:d.cb,yAxisIndex:1,lineStyle:{color:"#ce93d8",width:1.3},symbol:"none"}
+    ]
+  },true);
 
-  // hist
-  const v2=sp.filter(x=>x!==null);const mn=Math.min(...v2),mx=Math.max(...v2),B=50,bw=(mx-mn)/B;
-  const hs=new Array(B).fill(0),lb2=[];
-  for(let i=0;i<B;i++)lb2.push((mn+i*bw).toFixed(dp));
+  // 直方图
+  const v2 = sp.filter(x=>x!==null);
+  const mn=Math.min(...v2), mx=Math.max(...v2), B=50, bw=(mx-mn)/B;
+  const hs=new Array(B).fill(0), lb2=[];
+  for(let i=0;i<B;i++) lb2.push((mn+i*bw).toFixed(dp));
   v2.forEach(x=>{let i=Math.floor((x-mn)/bw);if(i>=B)i=B-1;hs[i]++});
-  const cb=Math.min(Math.floor((st.cur-mn)/bw),B-1);
-  const cs=hs.map((_,i)=>i===cb?"#ff4081":"rgba(79,195,247,.65)");
-  if(!hc)hc=echarts.init(document.getElementById("hc"),"dark");
-  hc.setOption({backgroundColor:"#161b22",grid:{left:38,right:16,top:16,bottom:32},
+  const cb = Math.min(Math.floor((st.cur-mn)/bw),B-1);
+  const cs = hs.map((_,i)=>i===cb?"#ff4081":"rgba(79,195,247,.65)");
+  if(!hc_chart) hc_chart = echarts.init(document.getElementById("hc"),"dark");
+  hc_chart.setOption({
+    backgroundColor:"#161b22",
+    grid:{left:38,right:16,top:16,bottom:32},
     tooltip:{trigger:"axis",backgroundColor:"#21262d",borderColor:"#30363d",textStyle:{color:"#c9d1d9",fontSize:11}},
     xAxis:{type:"category",data:lb2,axisLabel:{color:"#6e7681",fontSize:9,interval:Math.floor(B/7)},axisLine:{lineStyle:{color:"#30363d"}},splitLine:{show:false}},
     yAxis:{type:"value",axisLabel:{color:"#6e7681",fontSize:9},splitLine:{lineStyle:{color:"#21262d",type:"dashed"}}},
-    series:[{type:"bar",data:hs,itemStyle:{color:params=>cs[params.dataIndex]},barWidth:"96%"}]},true);
+    series:[{type:"bar",data:hs,itemStyle:{color:params=>cs[params.dataIndex]},barWidth:"96%"}]
+  },true);
 
-  // stats
-  const rets=v2.slice(1).map((x,i)=>(x-v2[i])/v2[i]);
-  const rm=rets.reduce((a,b)=>a+b,0)/rets.length;
-  const av=(Math.sqrt(rets.reduce((a,b)=>a+(b-rm)**2,0)/rets.length)*Math.sqrt(252)*100).toFixed(2);
-  document.getElementById("sg").innerHTML=`
+  // 统计卡
+  const rets = v2.slice(1).map((x,i)=>(x-v2[i])/v2[i]);
+  const rm = rets.reduce((a,b)=>a+b,0)/rets.length;
+  const av = (Math.sqrt(rets.reduce((a,b)=>a+(b-rm)**2,0)/rets.length)*Math.sqrt(252)*100).toFixed(2);
+  document.getElementById("sg").innerHTML = `
     <div class="sbx"><h4>分位分布</h4>
-      ${[["P5",st.p5.toFixed(dp)],["P25",((st.p5*3+st.mean)/4).toFixed(dp)],["P50(中位)",st.mean.toFixed(dp)],["P75",((st.mean*3+st.p95)/4).toFixed(dp)],["P95",st.p95.toFixed(dp)],["当前分位","P"+st.pct.toFixed(1)]].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join("")}
+      ${[["P5(极低)",st.p5.toFixed(dp)],["均值",st.mean.toFixed(dp)],["P95(极高)",st.p95.toFixed(dp)],["当前分位","P"+st.pct.toFixed(1)],["开仓下界","P"+T.plo],["开仓上界","P"+T.phi]].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join("")}
     </div>
     <div class="sbx"><h4>各周期相关性</h4>
       ${Object.entries(d.corr).map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv" style="color:${v>0.6?"var(--green)":v>0.3?"var(--yellow)":"var(--red)"}">${v.toFixed(4)}</span></div>`).join("")}
     </div>
-    <div class="sbx"><h4>波动率 & 统计</h4>
-      ${[["年化波动率",av+"%"],["Z-Score",st.z.toFixed(3)],["样本数",v2.length],["历史年份",yrs+"年"],["最新日期",d.last_date]].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join("")}
+    <div class="sbx"><h4>当前阈值 & 统计</h4>
+      ${[["年化波动率",av+"%"],["Z-Score",st.z.toFixed(3)],["开仓阈值","±"+T.open+"σ"],["强信号阈值","±"+T.strong+"σ"],["样本数",v2.length],["数据年份",yrs+"年"]].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join("")}
     </div>`;
 }
 
-window.addEventListener("resize",()=>{mc&&mc.resize();pc&&pc.resize();hc&&hc.resize()});
-init();
+window.addEventListener("resize",()=>{mc_chart&&mc_chart.resize();pc_chart&&pc_chart.resize();hc_chart&&hc_chart.resize()});
+
+// 初始化
+loadSettings();
+loadPair(false);
 </script>
 </body>
 </html>
