@@ -964,8 +964,12 @@ function render(){
     grid:{left:65,right:110,top:36,bottom:36},
     tooltip:{trigger:"axis",axisPointer:{type:"cross"},backgroundColor:"#fff",borderColor:"#dde1e7",textStyle:{color:"#1a1d23",fontSize:11},extraCssText:"box-shadow:0 4px 12px rgba(0,0,0,.1)"},
     legend:{top:6,right:6,textStyle:{color:"#4a5568",fontSize:10},itemWidth:14,itemHeight:8},
-    xAxis:{type:"category",data:d.dates,boundaryGap:false,axisLine:{lineStyle:{color:"#dde1e7"}},axisLabel:{color:"#8a93a2",fontSize:10,interval:Math.floor(d.dates.length/7)},splitLine:{show:false}},
+    xAxis:{type:"category",data:d.dates,boundaryGap:false,axisLine:{lineStyle:{color:"#dde1e7"}},
+      axisLabel:{color:"#8a93a2",fontSize:10,interval:Math.floor(d.dates.length/6),
+        formatter:v=>v?v.slice(0,7):""   // 只显示 YYYY-MM
+      },splitLine:{show:false}},
     yAxis:{type:"value",scale:true,axisLine:{lineStyle:{color:"#dde1e7"}},axisLabel:{color:"#8a93a2",fontSize:10},splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}},
+    dataZoom:[{type:"inside",start:0,end:100}],
     series:[
       {name:lb,type:"line",data:sp,lineStyle:{color:"#ea580c",width:2},symbol:"none",z:10},
       {name:"布林上轨",type:"line",data:bu,lineStyle:{color:"#dc2626",width:1,type:"dashed"},symbol:"none",z:5},
@@ -983,7 +987,11 @@ function render(){
     grid:{left:56,right:70,top:24,bottom:30},
     tooltip:{trigger:"axis",backgroundColor:"#fff",borderColor:"#dde1e7",textStyle:{color:"#1a1d23",fontSize:11}},
     legend:{top:3,right:5,textStyle:{color:"#4a5568",fontSize:9},itemWidth:12,itemHeight:7},
-    xAxis:{type:"category",data:d.dates,boundaryGap:false,axisLabel:{color:"#8a93a2",fontSize:9,interval:Math.floor(d.dates.length/6)},axisLine:{lineStyle:{color:"#dde1e7"}},splitLine:{show:false}},
+    xAxis:{type:"category",data:d.dates,boundaryGap:false,
+      axisLabel:{color:"#8a93a2",fontSize:9,interval:Math.floor(d.dates.length/6),
+        formatter:v=>v?v.slice(0,7):""
+      },axisLine:{lineStyle:{color:"#dde1e7"}},splitLine:{show:false}},
+    dataZoom:[{type:"inside",start:0,end:100}],
     yAxis:[
       {type:"value",scale:true,name:"BR",nameTextStyle:{color:"#ea580c",fontSize:9},axisLabel:{color:"#ea580c",fontSize:9},splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}},
       {type:"value",scale:true,name:"NR",nameTextStyle:{color:"#9333ea",fontSize:9},axisLabel:{color:"#9333ea",fontSize:9},splitLine:{show:false}}
