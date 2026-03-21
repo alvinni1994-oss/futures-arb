@@ -1098,13 +1098,13 @@ function render(){
       splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}},
     dataZoom:[{type:"inside",start:0,end:100}],
     series:[
-      {name:lb,type:"line",data:sp,lineStyle:{color:"#ea580c",width:2},symbol:"none",z:10},
-      {name:"布林上轨",type:"line",data:bu,lineStyle:{color:"#dc2626",width:1,type:"dashed"},symbol:"none",z:5},
-      {name:"布林中轨",type:"line",data:bm,lineStyle:{color:"#ca8a04",width:1,type:"dashed"},symbol:"none",z:5},
-      {name:"布林下轨",type:"line",data:bl,lineStyle:{color:"#16a34a",width:1,type:"dashed"},symbol:"none",z:5},
-      {name:"均值",type:"line",data:new Array(d.dates.length).fill(st.mean),lineStyle:{color:"rgba(107,114,128,.5)",width:1.5,type:"dotted"},symbol:"none"},
-      {name:"P95",type:"line",data:new Array(d.dates.length).fill(st.p95),lineStyle:{color:"rgba(220,38,38,.35)",width:1,type:"dotted"},symbol:"none"},
-      {name:"P5",type:"line",data:new Array(d.dates.length).fill(st.p5),lineStyle:{color:"rgba(22,163,74,.35)",width:1,type:"dotted"},symbol:"none"},
+      {name:lb,type:"line",data:sp,color:"#ea580c",lineStyle:{color:"#ea580c",width:2},symbol:"none",z:10},
+      {name:"布林上轨",type:"line",data:bu,color:"#dc2626",lineStyle:{color:"#dc2626",width:1,type:"dashed"},symbol:"none",z:5},
+      {name:"布林中轨",type:"line",data:bm,color:"#ca8a04",lineStyle:{color:"#ca8a04",width:1,type:"dashed"},symbol:"none",z:5},
+      {name:"布林下轨",type:"line",data:bl,color:"#16a34a",lineStyle:{color:"#16a34a",width:1,type:"dashed"},symbol:"none",z:5},
+      {name:"均值",type:"line",data:new Array(d.dates.length).fill(st.mean),color:"rgba(107,114,128,.5)",lineStyle:{color:"rgba(107,114,128,.5)",width:1.5,type:"dotted"},symbol:"none"},
+      {name:"P95",type:"line",data:new Array(d.dates.length).fill(st.p95),color:"rgba(220,38,38,.35)",lineStyle:{color:"rgba(220,38,38,.35)",width:1,type:"dotted"},symbol:"none"},
+      {name:"P5",type:"line",data:new Array(d.dates.length).fill(st.p5),color:"rgba(22,163,74,.35)",lineStyle:{color:"rgba(22,163,74,.35)",width:1,type:"dotted"},symbol:"none"},
     ]
   },true);
 
@@ -1125,8 +1125,8 @@ function render(){
       splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}
     },
     series:[
-      {name:"BR",type:"line",data:d.ca,lineStyle:{color:"#ea580c",width:1.5},symbol:"none"},
-      {name:"NR",type:"line",data:d.cb,lineStyle:{color:"#9333ea",width:1.5},symbol:"none"}
+      {name:"BR",type:"line",data:d.ca,color:"#ea580c",lineStyle:{color:"#ea580c",width:1.5},symbol:"none"},
+      {name:"NR",type:"line",data:d.cb,color:"#9333ea",lineStyle:{color:"#9333ea",width:1.5},symbol:"none"}
     ]
   },true);
 
