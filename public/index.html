@@ -152,8 +152,11 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 #mc{width:100%;height:320px}#pc{width:100%;height:180px}#hc{width:100%;height:150px}
 @media(max-width:500px){
   #mc{height:260px}#pc{height:200px}#hc{height:130px}
-  .hdr h1{font-size:.95rem}
-  .hdr-r{font-size:.7rem;gap:5px}
+  .hdr{padding:0 12px}
+  .hdr h1{font-size:.85rem}
+  .hdr-tag{display:none}  /* 手机隐藏"实时监控"badge，节省空间 */
+  .lupd-wrap{display:none} /* 手机隐藏更新时间 */
+  .hdr-r{font-size:.7rem;gap:4px}
   .rbtn{padding:3px 7px;font-size:.7rem}
   .dc-icon{font-size:1.6rem}
   .mc-val{font-size:.95rem}
@@ -209,8 +212,10 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
     <span class="hdr-tag">实时监控</span>
   </div>
   <div class="hdr-r">
-    <span class="lupd-dot" id="rt-dot" style="background:#94a3b8"></span>
-    更新：<span id="lupd">—</span>
+    <span class="lupd-wrap" style="display:inline-flex;align-items:center;gap:3px">
+      <span class="lupd-dot" id="rt-dot" style="background:#94a3b8"></span>
+      更新：<span id="lupd">—</span>
+    </span>
     <button class="rbtn" onclick="refreshData()">🔄 刷新</button>
     <select class="ysel" id="ys" onchange="onYears()">
       <option value="1">1年</option><option value="2">2年</option>
@@ -941,8 +946,8 @@ function renderDecision(d){
   document.getElementById("hdr-z").style.color=Math.abs(dz)>=T.strong?"var(--red)":Math.abs(dz)>=T.open?"var(--orange)":"var(--t)";
   document.getElementById("hdr-z-sub").textContent=dz>0?"BR偏贵":"NR偏贵";
   document.getElementById("hdr-rt-badge").innerHTML=d.realtime?
-    '<span style="background:#dcfce7;color:#16a34a;padding:1px 6px;border-radius:4px;font-size:.62rem;font-weight:700;border:1px solid #86efac">●实时</span>':
-    '<span style="background:#fefce8;color:#ca8a04;padding:1px 6px;border-radius:4px;font-size:.62rem;font-weight:700;border:1px solid #fde047">昨收</span>';
+    '<span style="background:#dcfce7;color:#16a34a;padding:1px 5px;border-radius:4px;font-size:.58rem;font-weight:700;border:1px solid #86efac;white-space:nowrap">●实时</span>':
+    '<span style="background:#fefce8;color:#ca8a04;padding:1px 5px;border-radius:4px;font-size:.58rem;font-weight:700;border:1px solid #fde047;white-space:nowrap">昨收</span>';
   document.getElementById("dc-date").textContent=d.last_date+(d.realtime?" 实时":" 昨日收盘");
 
   // 公式实时
