@@ -153,7 +153,10 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
   .rbtn{padding:3px 7px;font-size:.7rem}
   .dc-icon{font-size:1.6rem}
   .mc-val{font-size:.95rem}
-  .dc-prices-row{gap:8px}
+  .dc-prices-row{gap:6px;padding:8px 10px}
+  .dc-price-div{display:none}  /* 手机上隐藏分隔线，用gap代替 */
+  .dc-price-item{min-width:70px}
+  .dc-diff-val{font-size:1.3rem}
   .chart-tabs{gap:4px}
   .ctab{padding:5px 10px;font-size:.75rem}
   .ct{padding:8px}
@@ -242,8 +245,11 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
         </div>
         <div class="dc-price-div"></div>
         <div class="dc-price-item" style="flex:1;text-align:center">
-          <div class="dc-price-label">BR − NR 价差（元/吨）<span id="hdr-rt-badge" style="margin-left:4px"></span></div>
-          <div class="dc-diff-val c-orange" id="hdr-diff">—</div>
+          <div class="dc-price-label">BR − NR 价差（元/吨）</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:5px">
+            <div class="dc-diff-val c-orange" id="hdr-diff">—</div>
+            <span id="hdr-rt-badge"></span>
+          </div>
           <div class="dc-price-sub" id="diff-vs-mean"></div>
         </div>
         <div class="dc-price-div"></div>
