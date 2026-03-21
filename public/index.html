@@ -469,7 +469,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
     <button class="ctab" id="btn-ratio" onclick="setMode('ratio')">BR÷NR 比值（辅）</button>
   </div>
   <div class="chart-box"><div class="chart-title" id="mct">BR−NR 价差走势（元/吨）· 3年 · 布林带</div><div id="mc"></div></div>
-  <div class="chart-box"><div class="chart-title">BR / NR 价格走势（双轴）</div><div id="pc"></div></div>
+  <div class="chart-box"><div class="chart-title">BR / NR 价格走势（同轴）</div><div id="pc"></div></div>
   <div class="stats-row" id="sg"></div>
   <div class="chart-box"><div class="chart-title">历史分布直方图（红色竖线 = 当前位置）</div><div id="hc"></div></div>
 
@@ -1096,17 +1096,13 @@ function render(){
         formatter:v=>v?v.slice(0,7):""
       },axisLine:{lineStyle:{color:"#dde1e7"}},splitLine:{show:false}},
     dataZoom:[{type:"inside",start:0,end:100}],
-    yAxis:[
-      {type:"value",scale:true,name:"BR",nameTextStyle:{color:"#ea580c",fontSize:9},
-        axisLabel:{color:"#ea580c",fontSize:9,formatter:v=>v>=1000?(v/1000).toFixed(0)+"k":v},
-        splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}},
-      {type:"value",scale:true,name:"NR",nameTextStyle:{color:"#9333ea",fontSize:9},
-        axisLabel:{color:"#9333ea",fontSize:9,formatter:v=>v>=1000?(v/1000).toFixed(0)+"k":v},
-        splitLine:{show:false}}
-    ],
+    yAxis:{type:"value",scale:true,
+      axisLabel:{color:"#8a93a2",fontSize:9,formatter:v=>v>=1000?(v/1000).toFixed(1)+"k":v},
+      splitLine:{lineStyle:{color:"#f0f2f5",type:"dashed"}}
+    },
     series:[
-      {name:"BR",type:"line",data:d.ca,yAxisIndex:0,lineStyle:{color:"#ea580c",width:1.5},symbol:"none"},
-      {name:"NR",type:"line",data:d.cb,yAxisIndex:1,lineStyle:{color:"#9333ea",width:1.5},symbol:"none"}
+      {name:"BR",type:"line",data:d.ca,lineStyle:{color:"#ea580c",width:1.5},symbol:"none"},
+      {name:"NR",type:"line",data:d.cb,lineStyle:{color:"#9333ea",width:1.5},symbol:"none"}
     ]
   },true);
 
