@@ -454,7 +454,7 @@ let mode="diff", yrs=3, D=null;
 let mc_c,pc_c,hc_c, alertTimer=null, lastAlertTime=0;
 
 let T={diffOpenHi:1500,diffStrongHi:2500,diffOpenLo:-800,diffStrongLo:-1500,diffTp:500,diffSl:4500,open:1.5,strong:2.0};
-let AC={notif:false,email:false,emails:[],webhook:false,webhookKey:""};
+let AC={notif:false,email:false,emails:[],webhook:true,webhookKey:"SCT326715TNpUrFtLyGQwtSHpPzDMFyXEn"};
 
 // ===== 持久化 =====
 function loadSettings(){
@@ -472,7 +472,7 @@ function loadSettings(){
   document.getElementById("t-strong").value=T.strong;
   if(AC.webhookKey) document.getElementById("alert-webhook").value=AC.webhookKey;
   if(AC.email) document.getElementById("sw-email").classList.add("on");
-  if(AC.webhook) document.getElementById("sw-webhook").classList.add("on");
+  if(AC.webhook){document.getElementById("sw-webhook").classList.add("on");document.getElementById("webhook-status").textContent="✅ 已启用（Server酱）";}
   renderEmailList();
   updateNotifUI();
   setAlertTimer();
