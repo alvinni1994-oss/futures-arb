@@ -380,6 +380,16 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
     <div class="panel">
       <div class="panel-h"><span><span class="ph-icon">🔔</span>提醒设置</span></div>
 
+      <!-- 提醒逻辑说明 -->
+      <div style="background:var(--blue-bg);border:1px solid var(--blue-bd);border-radius:8px;padding:10px 13px;margin-bottom:12px;font-size:.72rem;color:var(--t2);line-height:1.7">
+        <div style="font-weight:700;color:var(--blue);margin-bottom:5px">📋 提醒触发规则（防骚扰机制）</div>
+        <div>✅ <b>状态变化才提醒</b>：信号从"观望"升级到"弱/强"时发送，持续处于同一状态不重复推送</div>
+        <div>✅ <b>今日次数上限</b>：强信号每日最多 <b>2次</b>，弱信号每日最多 <b>1次</b>，止损预警不限次</div>
+        <div>✅ <b>4小时间隔保护</b>：即便状态未变，同级别最短4小时才补发一次</div>
+        <div style="color:var(--t3);margin-top:4px">以上规则共同作用，确保不会刷屏。次数统计每日零点自动重置。</div>
+        <div id="alert-freq-status" style="margin-top:5px;color:var(--orange);font-weight:600"></div>
+      </div>
+
       <div class="alert-item">
         <label>⏱ 自动刷新频率</label>
         <select class="freq-select" id="alert-freq" onchange="setAlertTimer()">
@@ -455,7 +465,24 @@ const API=(location.hostname==='localhost'||location.hostname==='127.0.0.1')
   ?`http://${location.host}`:location.origin;
 
 let mode="diff", yrs=3, D=null;
-let mc_c,pc_c,hc_c, alertTimer=null, lastAlertTime=0;
+let mc_c,pc_c,hc_c, alertTimer=null;
+
+// ===== 提醒频控状态 =====
+// 方案1：状态变化才提醒；方案2：同级别每日最多N次
+const ALERT_DAILY_LIMITS = {"🛑":99, "🔥强卖":2, "🔥强买":2, "⚠️弱卖":1, "⚠️弱买":1};
+let alertState = {
+  lastSignal: "观望",       // 上次信号级别
+  counts: {},               // 今日各级别已发次数 {key: count}
+  countDate: "",            // 计数对应的日期（YYYY-MM-DD）
+  lastAlertTime: 0,         // 上次任意提醒时间戳
+};
+try{ const s=localStorage.getItem("brnr_alert_state"); if(s) alertState={...alertState,...JSON.parse(s)}; }catch(e){}
+function saveAlertState(){ try{localStorage.setItem("brnr_alert_state",JSON.stringify(alertState));}catch(e){} }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function resetDailyIfNeeded(){
+  const today=todayStr();
+  if(alertState.countDate!==today){ alertState.counts={}; alertState.countDate=today; saveAlertState(); }
+}
 
 let T={diffOpenHi:1500,diffStrongHi:2500,diffOpenLo:-800,diffStrongLo:-1500,diffTp:500,diffSl:4500,open:1.5,strong:2.0};
 let AC={notif:false,email:false,emails:[],webhook:true,webhookKey:"SCT326715TNpUrFtLyGQwtSHpPzDMFyXEn"};
@@ -636,13 +663,47 @@ async function testWebhook(){
   st.textContent="✅ 已发送，微信约1~2分钟收到"; st.style.color="var(--green)";
 }
 
-async function fireAlert(title,body){
-  const now=Date.now();
-  if(now-lastAlertTime<300000) return;
-  lastAlertTime=now;
+async function fireAlert(title, body, signalKey){
+  resetDailyIfNeeded();
+  const now = Date.now();
+
+  // 方案1：状态未变化则不提醒（止损除外）
+  if(signalKey !== "🛑" && alertState.lastSignal === signalKey){
+    // 方案2：即便状态没变，今日额度未耗尽且距上次>4h也可补发一次
+    const limit = ALERT_DAILY_LIMITS[signalKey] || 1;
+    const used = alertState.counts[signalKey] || 0;
+    const hoursSinceLast = (now - alertState.lastAlertTime) / 3600000;
+    if(used >= limit || hoursSinceLast < 4) return; // 频控拦截
+  }
+
+  // 方案2：检查今日发送次数上限
+  const limit = ALERT_DAILY_LIMITS[signalKey] || 1;
+  const used = alertState.counts[signalKey] || 0;
+  if(signalKey !== "🛑" && used >= limit) return;
+
+  // 通过频控，执行发送
+  alertState.lastSignal = signalKey;
+  alertState.counts[signalKey] = (alertState.counts[signalKey] || 0) + 1;
+  alertState.lastAlertTime = now;
+  saveAlertState();
+
   if(AC.notif&&Notification.permission==="granted") new Notification("🔴 BR/NR: "+title,{body});
   if(AC.webhook&&AC.webhookKey) sendServerChan(title,body);
   if(AC.email) sendEmailToAll("🔴 BR/NR套利信号: "+title,body);
+
+  // 更新提醒状态显示
+  updateAlertStatusPanel(signalKey, title);
+}
+
+function updateAlertStatusPanel(signalKey, title){
+  resetDailyIfNeeded();
+  const lines = [];
+  for(const [k,limit] of Object.entries(ALERT_DAILY_LIMITS)){
+    const used = alertState.counts[k]||0;
+    if(limit<99) lines.push(`${k}：今日已发${used}/${limit}次`);
+  }
+  const el = document.getElementById("alert-freq-status");
+  if(el) el.textContent = lines.length ? "今日提醒："+lines.join(" | ") : "";
 }
 
 // ===== 定时器 =====
@@ -744,7 +805,7 @@ function renderDecision(d){
   const opEl=document.getElementById("dc-op"), tpEl=document.getElementById("dc-tp"), slEl=document.getElementById("dc-sl"), noteEl=document.getElementById("dc-note");
   const tpHi=mean+T.diffTp, tpLo=mean-T.diffTp;
 
-  let alertNeeded=false, alertTitle="", alertBody="";
+  let alertNeeded=false, alertTitle="", alertBody="", alertKey="";
 
   if(diff>=T.diffSl||diff<=-T.diffSl){
     bar.className="dc-signal-bar warn"; badge.className="dc-badge badge-stop"; badge.textContent="🛑 止损预警";
@@ -752,14 +813,14 @@ function renderDecision(d){
     opEl.style.color="var(--red)"; opEl.textContent="建议止损出场，立即核查持仓";
     tpEl.style.color="var(--t3)"; tpEl.textContent="—";
     slEl.style.color="var(--red)"; slEl.textContent="已触发 ±"+T.diffSl+"元";
-    alertNeeded=true; alertTitle="🛑止损预警"; alertBody="BR-NR价差="+diff.toFixed(0)+"元，超过±"+T.diffSl+"元止损线。BR="+br+" NR="+nr+" ⚠️请立即检查！";
+    alertNeeded=true; alertTitle="🛑止损预警"; alertBody="BR-NR价差="+diff.toFixed(0)+"元，超过±"+T.diffSl+"元止损线。BR="+br+" NR="+nr+" ⚠️请立即检查！"; alertKey="🛑";
   } else if(diff>=T.diffStrongHi){
     bar.className="dc-signal-bar sell"; badge.className="dc-badge badge-sell"; badge.textContent="🔥 强信号：卖BR买NR";
     icon.textContent="🔥"; sub.textContent="BR−NR价差=+"+diff.toFixed(0)+"元 (历史P"+dpct.toFixed(1)+"%），BR极度偏贵，强烈关注做空BR";
     opEl.style.color="var(--red)"; opEl.innerHTML="<b>卖 2手BR @ "+br+" + 买 1手NR @ "+nr+"</b>";
     tpEl.style.color="var(--green)"; tpEl.textContent="差值回至 +"+(tpHi|0)+"~+"+(tpLo>0?(tpLo|0):(tpLo|0))+"元";
     slEl.style.color="var(--red)"; slEl.textContent="差值超过 +"+T.diffSl+"元";
-    alertNeeded=true; alertTitle="🔥强信号：卖2手BR买1手NR";
+    alertNeeded=true; alertKey="🔥强卖"; alertTitle="🔥强信号：卖2手BR买1手NR";
     alertBody="BR-NR价差=+"+diff.toFixed(0)+"元 > +"+T.diffStrongHi+"元，P"+dpct.toFixed(1)+"%\nBR="+br+" NR="+nr+"\n操作：卖2手BR+买1手NR\n止盈：差值回到均值+"+T.diffTp+"以内";
   } else if(diff<=T.diffStrongLo){
     bar.className="dc-signal-bar buy"; badge.className="dc-badge badge-buy"; badge.textContent="🔥 强信号：买BR卖NR";
@@ -767,7 +828,7 @@ function renderDecision(d){
     opEl.style.color="var(--blue)"; opEl.innerHTML="<b>买 2手BR @ "+br+" + 卖 1手NR @ "+nr+"</b>";
     tpEl.style.color="var(--green)"; tpEl.textContent="差值回至 "+(tpLo|0)+"~+"+(tpHi|0)+"元";
     slEl.style.color="var(--red)"; slEl.textContent="差值低于 "+(-T.diffSl)+"元";
-    alertNeeded=true; alertTitle="🔥强信号：买2手BR卖1手NR";
+    alertNeeded=true; alertKey="🔥强买"; alertTitle="🔥强信号：买2手BR卖1手NR";
     alertBody="BR-NR价差="+diff.toFixed(0)+"元 < "+T.diffStrongLo+"元，P"+dpct.toFixed(1)+"%\nBR="+br+" NR="+nr+"\n操作：买2手BR+卖1手NR";
   } else if(diff>=T.diffOpenHi){
     bar.className="dc-signal-bar sell"; badge.className="dc-badge badge-sell"; badge.textContent="⚠️ 弱信号：关注卖BR";
@@ -790,7 +851,8 @@ function renderDecision(d){
   }
 
   noteEl.textContent="配对：2手BR(5t×2=10t) : 1手NR(10t×1=10t) · 价差均值+"+(mean|0)+"元/吨 · "+(d.realtime?"🟢实时价":"⚠昨日收盘价")+" "+d.last_date+" · 仅供研究参考";
-  if(alertNeeded) fireAlert(alertTitle,alertBody);
+  if(alertNeeded) fireAlert(alertTitle, alertBody, alertKey);
+  updateAlertStatusPanel();
 }
 
 // ===== 主渲染 =====
