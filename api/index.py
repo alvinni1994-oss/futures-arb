@@ -598,6 +598,7 @@ def get_batch(years: int = 3):
 
 # ===== 邮件发送接口（Resend HTTP API） =====
 import urllib.request
+import urllib.parse
 import json as _json
 from pydantic import BaseModel
 
@@ -707,6 +708,44 @@ def get_settings(key: str = "default"):
     """获取用户设置（跨设备同步）"""
     data = _load_settings()
     return data.get(key, {})
+
+class WebhookReq(BaseModel):
+    key: str          # Server酱 SendKey
+    title: str = "期货套利提醒"
+    content: str = ""
+
+@app.post("/api/send-webhook")
+async def send_webhook(req: WebhookReq):
+    """转发 Server酱推送（SCT开头用 sctapi，SCTP开头用企业微信版）"""
+    key = req.key.strip()
+    if not key:
+        return JSONResponse({"ok": False, "msg": "SendKey 不能为空"}, status_code=400)
+    try:
+        payload = urllib.parse.urlencode({
+            "title": req.title,
+            "desp": req.content or req.title,
+        }).encode("utf-8")
+        # SCT / SCTP 两种 Server酱接口
+        if key.startswith("SCTP"):
+            uid = key[4:].split("T")[0]
+            url = f"https://{uid}.push.ft07.com/send/{key}.send"
+        else:
+            url = f"https://sctapi.ftqq.com/{key}.send"
+        request = urllib.request.Request(url, data=payload,
+            headers={"Content-Type": "application/x-www-form-urlencoded"}, method="POST")
+        with urllib.request.urlopen(request, timeout=10) as resp:
+            result = _json.loads(resp.read().decode())
+            # Server酱返回 {"code":0,"message":"success",...}
+            if result.get("code") == 0:
+                return {"ok": True, "msg": "已发送"}
+            else:
+                return JSONResponse({"ok": False, "msg": result.get("message","未知错误")}, status_code=200)
+    except urllib.error.HTTPError as e:
+        err = e.read().decode()
+        return JSONResponse({"ok": False, "msg": f"HTTP {e.code}: {err[:200]}"}, status_code=200)
+    except Exception as e:
+        return JSONResponse({"ok": False, "msg": str(e)}, status_code=200)
+
 
 class SettingsReq(BaseModel):
     key: str = "default"
