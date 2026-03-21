@@ -864,13 +864,13 @@ def compute_statistics(spread: pd.Series) -> Dict:
 
     # 操作信号
     if percentile >= 80:
-        signal = "偏高"
+        signal = "high"
         signal_color = "red"
     elif percentile <= 20:
-        signal = "偏低"
+        signal = "low"
         signal_color = "green"
     else:
-        signal = "中性"
+        signal = "neutral"
         signal_color = "gray"
 
     return {
@@ -1065,18 +1065,33 @@ def get_spread(
     dates = [d.strftime("%Y-%m-%d") for d in spread_series.index]
     spreads = [round(float(v), 2) if not np.isnan(v) else None for v in spread_series.values]
 
+    # 各腿最新价格
+    leg_prices = []
+    for leg in legs:
+        sym = leg["symbol"]
+        df = dfs.get(sym)
+        last_price = None
+        if df is not None and not df.empty:
+            last_price = round(float(df["close"].iloc[-1]), 2)
+        leg_prices.append({
+            "label": leg["label"],
+            "symbol": leg["symbol"],
+            "coef": leg["coef"],
+            "last_price": last_price,
+        })
+
     return {
         "id": id,
         "name": strategy["name"],
         "formula": strategy["formula"],
         "unit": strategy["unit"],
+        "signal": stats_dict.get("signal", "neutral"),
         "dates": dates,
         "spreads": spreads,
         "stats": stats_dict,
-        "legs": [
-            {"label": leg["label"], "coef": leg["coef"], "symbol": leg["symbol"]}
-            for leg in legs
-        ],
+        "legs": leg_prices,
+        "description": strategy.get("description", ""),
+        "category": strategy.get("category", ""),
     }
 
 
