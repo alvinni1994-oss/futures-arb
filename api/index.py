@@ -108,11 +108,13 @@ def get_realtime_price(symbol: str) -> dict | None:
     
     try:
         df = ak.futures_zh_realtime(symbol=name)
-        # 取主力合约（symbol == XXX0，或持仓量最大的近月合约）
-        main = df[df["symbol"] == f"{symbol}0"]
-        if main.empty:
-            # 按持仓量取最大的
-            main = df[df["symbol"].str.match(f"^{symbol}\\d{{4}}$")].nlargest(1, "position")
+        # 优先取持仓量最大的具体月份合约（如 BR2506）
+        specific = df[df["symbol"].str.match(f"^{symbol}\\d{{4}}$")]
+        if not specific.empty:
+            main = specific.nlargest(1, "position")
+        else:
+            # 回退到通用主力代码（BR0）
+            main = df[df["symbol"] == f"{symbol}0"]
         if main.empty:
             return None
         row = main.iloc[0]
