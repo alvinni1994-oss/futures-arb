@@ -643,7 +643,7 @@ async function testEmail(){
   }
 }
 
-function buildServerChanMd(title, body){
+function buildServerChanMd(title, body, chartUrl=null){
   const D = window._lastData;
   const now = new Date().toLocaleString("zh-CN",{hour12:false});
   let md = `## ${title}\n\n`;
@@ -670,11 +670,12 @@ function buildServerChanMd(title, body){
     md += `### 📊 价差统计\n`;
     md += `| 指标 | 数值 |\n|---|---|\n`;
     md += `| 当前价差 | **${diff > 0 ? "+":""}${diff}** 元/吨 |\n`;
-    md += `| 历史均值 | ${mean} 元/吨 |\n`;
-    md += `| 标准差 | ${std} |\n`;
-    md += `| Z-Score | **${z}σ** |\n`;
-    md += `| 历史分位 | **P${pct}%** |\n`;
-    md += `| 历史区间 | P5=${p5} ~ P95=${p95} |\n`;
+    md += `| 3年历史均值 | **${mean}** 元/吨（正常水平）|\n`;
+    md += `| 偏离均值 | **${diff > 0 ? "+":""}${(diff - parseFloat(mean)).toFixed(0)}** 元/吨 |\n`;
+    md += `| 标准差(1σ) | ±${std} 元/吨 |\n`;
+    md += `| Z-Score | **${z}σ**（>2σ为强信号）|\n`;
+    md += `| 历史分位 | **P${pct}%**（>P80为偏高）|\n`;
+    md += `| P5~P95区间 | ${p5} ~ ${p95} 元/吨 |\n`;
     md += `| BR/NR比值 | ${ratio} |\n\n`;
 
     md += `### 🎯 操作建议\n`;
@@ -692,6 +693,11 @@ function buildServerChanMd(title, body){
   } else {
     md += body + `\n\n`;
   }
+  // 插入走势图
+  if(chartUrl){
+    md += `### 📉 走势图（近6个月）\n`;
+    md += `![BR/NR走势图](${chartUrl})\n\n`;
+  }
   md += `---\n`;
   md += `🔗 [查看完整图表](https://futures-arb.onrender.com)\n`;
   return md;
@@ -700,7 +706,18 @@ function buildServerChanMd(title, body){
 async function sendServerChan(title, body){
   const key=document.getElementById("alert-webhook").value.trim()||AC.webhookKey;
   if(!key) return;
-  const desp = buildServerChanMd(title, body);
+
+  // 先拉图表图片 URL
+  let chartUrl = null;
+  try{
+    const cr = await fetch(API+"/api/chart-image?a=BR&b=NR&days=180");
+    if(cr.ok){
+      const cj = await cr.json();
+      if(cj.url) chartUrl = cj.url;
+    }
+  }catch(e){}
+
+  const desp = buildServerChanMd(title, body, chartUrl);
   try{
     await fetch("https://sctapi.ftqq.com/"+key+".send",{
       method:"POST",
