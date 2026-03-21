@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>多策略期货套利监控</title>
+  <!-- ECharts CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    /* ==============================
+       CSS 变量 & 主题
+    ============================== */
+    :root {
+      --bg: #f5f7fa;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text-primary: #1a202c;
+      --text-secondary: #718096;
+      --text-muted: #a0aec0;
+      --accent: #4f6ef7;
+      --accent-light: #ebedfd;
+      --red: #e53e3e;
+      --red-light: #fff5f5;
+      --green: #38a169;
+      --green-light: #f0fff4;
+      --yellow: #d69e2e;
+      --yellow-light: #fffff0;
+      --gray: #718096;
+      --gray-light: #f7fafc;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0f1117;
+      --card-bg: #1a1d2e;
+      --border: #2d3748;
+      --text-primary: #e2e8f0;
+      --text-secondary: #a0aec0;
+      --text-muted: #4a5568;
+      --accent: #7b93ff;
+      --accent-light: #1e2640;
+      --red: #fc8181;
+      --red-light: #2d1b1b;
+      --green: #68d391;
+      --green-light: #1a2d1a;
+      --yellow: #f6e05e;
+      --yellow-light: #2d2a1a;
+      --gray: #a0aec0;
+      --gray-light: #1a1d2e;
+      --shadow: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+    }
+
+    /* ==============================
+       全局基础样式
+    ============================== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                   "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ==============================
+       头部导航
+    ============================== */
+    header {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      height: 56px;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .logo span {
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--text-secondary);
+      margin-left: 6px;
+    }
+
+    .refresh-status {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .header-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--bg);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: all 0.2s;
+    }
+    .btn-icon:hover { background: var(--accent-light); color: var(--accent); }
+
+    /* ==============================
+       Tab 导航
+    ============================== */
+    .tab-nav {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 56px;
+      z-index: 99;
+    }
+
+    .tab-nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 0 16px;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tab-nav-inner::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      padding: 14px 20px;
+      border: none;
+      border-bottom: 3px solid transparent;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover { color: var(--accent); }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-btn .tab-count {
+      display: inline-block;
+      background: var(--accent-light);
+      color: var(--accent);
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 11px;
+      margin-left: 6px;
+    }
+
+    /* ==============================
+       主内容区
+    ============================== */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px 16px;
+    }
+
+    .category-section {
+      display: none;
+    }
+    .category-section.active {
+      display: block;
+    }
+
+    .section-header {
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .section-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    /* ==============================
+       策略卡片网格
+    ============================== */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ==============================
+       策略卡片
+    ============================== */
+    .strategy-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+    .strategy-card:hover { box-shadow: var(--shadow-md); }
+
+    .card-header {
+      padding: 16px 16px 12px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-title-area { flex: 1; min-width: 0; }
+
+    .card-name {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-formula {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-family: "SFMono-Regular", Consolas, monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* 信号徽章 */
+    .signal-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .signal-high { background: var(--red-light); color: var(--red); }
+    .signal-low { background: var(--green-light); color: var(--green); }
+    .signal-neutral { background: var(--gray-light); color: var(--gray); }
+    .signal-loading { background: var(--accent-light); color: var(--accent); }
+
+    /* 主要数值区 */
+    .card-metrics {
+      padding: 0 16px 12px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-end;
+    }
+
+    .metric-main { flex: 1; }
+
+    .metric-value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .metric-value.high { color: var(--red); }
+    .metric-value.low { color: var(--green); }
+    .metric-value.neutral { color: var(--text-primary); }
+
+    .metric-unit {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .metric-secondary {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      align-items: flex-end;
+    }
+
+    .kv-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .kv-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .kv-value {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* 分位进度条 */
+    .percentile-bar {
+      padding: 0 16px 12px;
+    }
+    .pbar-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .pbar-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .pbar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+      background: linear-gradient(90deg, var(--green) 0%, var(--yellow) 50%, var(--red) 100%);
+    }
+    .pbar-pointer {
+      position: absolute;
+      top: -3px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--text-primary);
+      border: 2px solid var(--card-bg);
+      box-shadow: var(--shadow);
+      transform: translateX(-50%);
+      transition: left 0.5s ease;
+    }
+
+    /* 图表区 */
+    .card-chart {
+      padding: 0 8px 8px;
+      height: 200px;
+    }
+
+    /* 展开详情按钮 */
+    .card-footer {
+      padding: 8px 16px 12px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      flex: 1;
+      line-height: 1.5;
+    }
+
+    .btn-detail {
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      margin-left: 8px;
+      transition: all 0.2s;
+    }
+    .btn-detail:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ==============================
+       跨期价差卡片
+    ============================== */
+    .calendar-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .calendar-card-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .calendar-spreads-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .calendar-spreads-table th {
+      padding: 8px 12px;
+      text-align: left;
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 11px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .calendar-spreads-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .calendar-spreads-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .spread-positive { color: var(--red); font-weight: 600; }
+    .spread-negative { color: var(--green); font-weight: 600; }
+
+    .calendar-chart {
+      height: 200px;
+      padding: 8px;
+    }
+
+    /* ==============================
+       错误/加载状态
+    ============================== */
+    .loading-overlay {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      flex-direction: column;
+      gap: 12px;
+      color: var(--text-secondary);
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      padding: 12px 16px;
+      background: var(--red-light);
+      border-radius: var(--radius-sm);
+      color: var(--red);
+      font-size: 13px;
+      margin: 8px 16px;
+    }
+
+    .unsupported-box {
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    /* ==============================
+       详情模态框
+    ============================== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 800px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: var(--card-bg);
+      z-index: 1;
+    }
+
+    .modal-title { font-size: 18px; font-weight: 700; }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-body { padding: 20px; }
+
+    .modal-chart {
+      height: 320px;
+      margin-bottom: 20px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 480px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-box {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      text-align: center;
+    }
+    .stat-box-label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
+    .stat-box-value { font-size: 18px; font-weight: 700; }
+
+    /* ==============================
+       底部状态栏
+    ============================== */
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--card-bg);
+      border-top: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      z-index: 50;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .status-dot.online { background: var(--green); }
+    .status-dot.error { background: var(--red); }
+
+    body { padding-bottom: 44px; }
+
+    /* ==============================
+       响应式调整
+    ============================== */
+    @media (max-width: 480px) {
+      .logo span { display: none; }
+      .metric-value { font-size: 24px; }
+      .card-chart { height: 160px; }
+      .btn-detail { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== 头部 ===== -->
+<header>
+  <div class="header-inner">
+    <div class="logo">📊 套利监控 <span>多策略期货价差分析</span></div>
+    <div class="refresh-status" id="refreshStatus">--</div>
+    <div class="header-actions">
+      <button class="btn-icon" id="refreshBtn" title="立即刷新" onclick="refreshAll()">🔄</button>
+      <button class="btn-icon" id="themeBtn" title="切换主题" onclick="toggleTheme()">🌙</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== Tab导航 ===== -->
+<nav class="tab-nav">
+  <div class="tab-nav-inner" id="tabNav">
+    <button class="tab-btn active" data-cat="equity_index" onclick="switchTab(this)">
+      股指期货 <span class="tab-count">1</span>
+    </button>
+    <button class="tab-btn" data-cat="processing" onclick="switchTab(this)">
+      加工费套利 <span class="tab-count">3</span>
+    </button>
+    <button class="tab-btn" data-cat="cross_product" onclick="switchTab(this)">
+      跨品种套利 <span class="tab-count">5</span>
+    </button>
+    <button class="tab-btn" data-cat="calendar" onclick="switchTab(this)">
+      跨期价差 <span class="tab-count">3</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ===== 主内容 ===== -->
+<main id="mainContent">
+  <!-- 各分类 section 由 JS 动态渲染 -->
+  <div id="loadingMain" class="loading-overlay">
+    <div class="spinner"></div>
+    <div>正在加载策略数据...</div>
+  </div>
+</main>
+
+<!-- ===== 底部状态栏 ===== -->
+<div class="status-bar">
+  <div class="status-dot" id="statusDot"></div>
+  <span id="statusText">初始化中...</span>
+  <span style="margin-left:auto;color:var(--text-muted)">历史数据3年 | 每分钟刷新实时价格</span>
+</div>
+
+<!-- ===== 详情模态框 ===== -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">--</div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modalChart" class="modal-chart"></div>
+      <div class="stats-grid" id="modalStats"></div>
+      <div id="modalDesc" style="font-size:13px;color:var(--text-secondary);line-height:1.8;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ====================================================
+// 全局状态
+// ====================================================
+const API = '';  // 同源，无需前缀
+let strategies = [];
+let strategyData = {};   // id -> spread数据
+let realtimeData = {};   // {prices, strategy_spreads}
+let calendarData = {};   // symbol -> data
+let charts = {};         // id -> echart instance
+let activeTab = 'equity_index';
+let autoRefreshTimer = null;
+let lastRefreshTime = null;
+
+const CATEGORY_META = {
+  equity_index: {
+    title: '股指期货价差',
+    subtitle: '中证1000(IM) vs 中证500(IC) 点数价差，反映市场风险偏好差异',
+    icon: '📈'
+  },
+  processing: {
+    title: '加工费套利',
+    subtitle: '通过买卖原料与产品期货锁定加工利润，低加工费做多，高加工费做空',
+    icon: '🏭'
+  },
+  cross_product: {
+    title: '跨品种套利',
+    subtitle: '利用相关品种价格比值回归的统计套利策略',
+    icon: '🔄'
+  },
+  calendar: {
+    title: '跨期价差',
+    subtitle: '同一品种不同交割月份合约的价差，反映市场对远近期供需预期差异',
+    icon: '📅'
+  }
+};
+
+const CALENDAR_SYMBOLS = ['PP', 'BU', 'FU'];
+
+// ====================================================
+// 主题切换
+// ====================================================
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  document.getElementById('themeBtn').textContent = isDark ? '🌙' : '☀️';
+  // 刷新所有图表主题
+  Object.values(charts).forEach(chart => {
+    if (chart && !chart.isDisposed()) chart.resize();
+  });
+  localStorage.setItem('theme', isDark ? 'light' : 'dark');
+}
+
+function initTheme() {
+  const saved = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeBtn').textContent = saved === 'dark' ? '☀️' : '🌙';
+}
+
+// ====================================================
+// Tab 切换
+// ====================================================
+function switchTab(btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  activeTab = btn.dataset.cat;
+
+  document.querySelectorAll('.category-section').forEach(s => s.classList.remove('active'));
+  const sec = document.getElementById(`section_${activeTab}`);
+  if (sec) sec.classList.add('active');
+
+  // resize charts in active section
+  setTimeout(() => resizeChartsInSection(activeTab), 100);
+}
+
+function resizeChartsInSection(cat) {
+  strategies.filter(s => s.category === cat).forEach(s => {
+    if (charts[s.id] && !charts[s.id].isDisposed()) charts[s.id].resize();
+    if (charts[`modal_${s.id}`] && !charts[`modal_${s.id}`].isDisposed()) {
+      charts[`modal_${s.id}`].resize();
+    }
+  });
+  CALENDAR_SYMBOLS.forEach(sym => {
+    if (charts[`cal_${sym}`] && !charts[`cal_${sym}`].isDisposed()) {
+      charts[`cal_${sym}`].resize();
+    }
+  });
+}
+
+// ====================================================
+// API 工具
+// ====================================================
+async function apiFetch(url) {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
+
+// ====================================================
+// 初始化
+// ====================================================
+async function init() {
+  initTheme();
+  setStatus('loading', '正在加载策略列表...');
+
+  try {
+    const data = await apiFetch('/api/strategies');
+    strategies = data.strategies;
+    renderSections();
+    document.getElementById('loadingMain').style.display = 'none';
+    setStatus('online', '加载完成，正在拉取历史数据...');
+    await loadAllData();
+    startAutoRefresh();
+  } catch (e) {
+    setStatus('error', `加载失败: ${e.message}`);
+    document.getElementById('loadingMain').innerHTML =
+      `<div style="color:var(--red);text-align:center;padding:40px">
+        ❌ 加载失败<br><small>${e.message}</small><br>
+        <button onclick="init()" style="margin-top:12px;padding:8px 16px;cursor:pointer">重试</button>
+      </div>`;
+  }
+}
+
+// ====================================================
+// 渲染 Section 骨架
+// ====================================================
+function renderSections() {
+  const main = document.getElementById('mainContent');
+  main.innerHTML = '';
+
+  const cats = ['equity_index', 'processing', 'cross_product', 'calendar'];
+  cats.forEach(cat => {
+    const meta = CATEGORY_META[cat];
+    const sec = document.createElement('div');
+    sec.className = `category-section${cat === activeTab ? ' active' : ''}`;
+    sec.id = `section_${cat}`;
+
+    const strats = strategies.filter(s => s.category === cat);
+
+    if (cat === 'calendar') {
+      // 跨期价差特殊布局
+      sec.innerHTML = `
+        <div class="section-header">
+          <div class="section-title">${meta.icon} ${meta.title}</div>
+          <div class="section-subtitle">${meta.subtitle}</div>
+        </div>
+        <div class="cards-grid" id="grid_${cat}">
+          ${CALENDAR_SYMBOLS.map(sym => renderCalendarCardSkeleton(sym)).join('')}
+        </div>
+      `;
+    } else {
+      sec.innerHTML = `
+        <div class="section-header">
+          <div class="section-title">${meta.icon} ${meta.title}</div>
+          <div class="section-subtitle">${meta.subtitle}</div>
+        </div>
+        <div class="cards-grid" id="grid_${cat}">
+          ${strats.map(s => renderStrategyCardSkeleton(s)).join('')}
+        </div>
+      `;
+    }
+
+    main.appendChild(sec);
+  });
+}
+
+function renderStrategyCardSkeleton(s) {
+  return `
+    <div class="strategy-card" id="card_${s.id}">
+      <div class-card-header">
+        <div class="card-name">${s.name}</div>
+        <div class="card-formula">${s.formula || ''}</div>
+      </div>
+      <div class="card-body">
+        <div class="card-main-val" id="val_${s.id}">
+          <span class="loading-dots">加载中</span>
+        </div>
+        <div class="card-stats" id="stats_${s.id}"></div>
+        <div class="card-chart" id="chart_${s.id}"></div>
+        <div class="card-signal" id="signal_${s.id}"></div>
+        <div class="card-desc">${s.description || ''}</div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCalendarCardSkeleton(sym) {
+  return `
+    <div class="strategy-card calendar-card" id="cal_card_${sym}">
+      <div class="card-header">
+        <div class="card-name">${sym} 跨期价差</div>
+        <div class="card-formula">近月 − 各远月</div>
+      </div>
+      <div class="card-body">
+        <div class="card-main-val" id="cal_val_${sym}">
+          <span class="loading-dots">加载中</span>
+        </div>
+        <div class="card-chart" id="cal_chart_${sym}"></div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================================
+// 数据加载
+// ============================================================
+
+async function loadAllData(years) {
+  try {
+    // 1. 加载策略列表
+    const res = await fetch('/api/strategies');
+    const strategies = await res.json();
+
+    // 2. 渲染骨架
+    renderSections(strategies);
+
+    // 3. 并发加载所有策略数据
+    await Promise.allSettled(strategies.map(s => loadStrategyData(s, years)));
+
+    // 4. 加载跨期价差
+    await Promise.allSettled(CALENDAR_SYMBOLS.map(sym => loadCalendarData(sym, years)));
+
+  } catch(e) {
+    console.error('loadAllData error:', e);
+    document.getElementById('main-content').innerHTML =
+      `<div style="padding:40px;text-align:center;color:#ef4444">数据加载失败：${e.message}</div>`;
+  }
+}
+
+async function loadStrategyData(s, years) {
+  try {
+    const res = await fetch(`/api/spread?id=${s.id}&years=${years}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    updateStrategyCard(s, data);
+  } catch(e) {
+    const el = document.getElementById(`val_${s.id}`);
+    if (el) el.innerHTML = `<span style="color:#ef4444;font-size:.75rem">加载失败</span>`;
+  }
+}
+
+async function loadCalendarData(sym, years) {
+  try {
+    const res = await fetch(`/api/calendar_spread?symbol=${sym}&years=${years}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    updateCalendarCard(sym, data);
+  } catch(e) {
+    const el = document.getElementById(`cal_val_${sym}`);
+    if (el) el.innerHTML = `<span style="color:#ef4444;font-size:.75rem">暂不支持</span>`;
+  }
+}
+
+// ============================================================
+// 卡片更新
+// ============================================================
+
+function updateStrategyCard(s, data) {
+  const { current, stats, signal, dates, spreads } = data;
+
+  // 主数值
+  const valEl = document.getElementById(`val_${s.id}`);
+  if (valEl) {
+    const signalColor = signal === 'high' ? '#ef4444' : signal === 'low' ? '#22c55e' : '#6b7280';
+    const arrow = signal === 'high' ? '↑' : signal === 'low' ? '↓' : '→';
+    valEl.innerHTML = `
+      <span class="main-number" style="color:${signalColor}">
+        ${current >= 0 ? '+' : ''}${current.toFixed(0)}
+      </span>
+      <span class="main-unit">${s.unit}</span>
+      <span class="signal-arrow" style="color:${signalColor}">${arrow}</span>
+    `;
+  }
+
+  // 统计数据
+  const statsEl = document.getElementById(`stats_${s.id}`);
+  if (statsEl && stats) {
+    const pctColor = stats.percentile > 80 ? '#ef4444' : stats.percentile < 20 ? '#22c55e' : '#6b7280';
+    statsEl.innerHTML = `
+      <div class="stat-row">
+        <span class="stat-label">历史分位</span>
+        <span class="stat-val" style="color:${pctColor}">P${stats.percentile.toFixed(1)}%</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Z-Score</span>
+        <span class="stat-val">${stats.z >= 0 ? '+' : ''}${stats.z.toFixed(2)}σ</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">均值</span>
+        <span class="stat-val">${stats.mean.toFixed(0)}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">1σ</span>
+        <span class="stat-val">±${stats.std.toFixed(0)}</span>
+      </div>
+    `;
+  }
+
+  // 信号标签
+  const signalEl = document.getElementById(`signal_${s.id}`);
+  if (signalEl) {
+    const signalMap = {
+      'high': { text: '偏高 · 关注做空', color: '#fef2f2', border: '#fecaca', txt: '#dc2626' },
+      'low':  { text: '偏低 · 关注做多', color: '#f0fdf4', border: '#bbf7d0', txt: '#16a34a' },
+      'neutral': { text: '中性 · 观望', color: '#f9fafb', border: '#e5e7eb', txt: '#6b7280' },
+    };
+    const sig = signalMap[signal] || signalMap['neutral'];
+    signalEl.innerHTML = `
+      <span style="background:${sig.color};border:1px solid ${sig.border};color:${sig.txt};padding:3px 10px;border-radius:20px;font-size:.72rem;font-weight:700">${sig.text}</span>
+    `;
+  }
+
+  // 图表
+  const chartEl = document.getElementById(`chart_${s.id}`);
+  if (chartEl && dates && spreads) {
+    chartEl.style.height = '120px';
+    const chart = echarts.init(chartEl);
+    const mean = stats ? stats.mean : 0;
+    chart.setOption({
+      backgroundColor: 'transparent',
+      grid: { left: 40, right: 8, top: 8, bottom: 22 },
+      tooltip: { trigger: 'axis', textStyle: { fontSize: 11 } },
+      xAxis: { type: 'category', data: dates, axisLabel: { fontSize: 8, color: '#9ca3af',
+        interval: Math.floor(dates.length / 4), formatter: v => v ? v.slice(0,7) : '' },
+        axisLine: { lineStyle: { color: '#e5e7eb' } }, splitLine: { show: false } },
+      yAxis: { type: 'value', scale: true, axisLabel: { fontSize: 8, color: '#9ca3af',
+        formatter: v => Math.abs(v) >= 1000 ? (v/1000).toFixed(1)+'k' : v },
+        splitLine: { lineStyle: { color: '#f3f4f6', type: 'dashed' } } },
+      series: [
+        { type: 'line', data: spreads, lineStyle: { color: '#ea580c', width: 1.5 }, symbol: 'none' },
+        { type: 'line', data: new Array(dates.length).fill(mean),
+          lineStyle: { color: '#94a3b8', width: 1, type: 'dashed' }, symbol: 'none' },
+      ]
+    });
+  }
+}
+
+function updateCalendarCard(sym, data) {
+  const valEl = document.getElementById(`cal_val_${sym}`);
+  if (!valEl) return;
+
+  if (data.error) {
+    valEl.innerHTML = `<span style="color:#6b7280;font-size:.75rem">${data.error}</span>`;
+    return;
+  }
+
+  const { spreads } = data;
+  if (!spreads || spreads.length === 0) {
+    valEl.innerHTML = `<span style="color:#6b7280;font-size:.75rem">暂无跨期数据</span>`;
+    return;
+  }
+
+  // 展示各月价差
+  valEl.innerHTML = spreads.map(sp => `
+    <div class="cal-spread-row">
+      <span class="cal-spread-label">${sp.label}</span>
+      <span class="cal-spread-val" style="color:${sp.value > 0 ? '#ea580c' : '#22c55e'}">
+        ${sp.value >= 0 ? '+' : ''}${sp.value.toFixed(0)}
+      </span>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// 主入口
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', () => {
+  const years = parseInt(document.getElementById('years-select')?.value || '3');
+  loadAllData(years);
+
+  // 年份切换
+  document.getElementById('years-select')?.addEventListener('change', e => {
+    loadAllData(parseInt(e.target.value));
+  });
+
+  // 刷新按钮
+  document.getElementById('refresh-btn')?.addEventListener('click', () => {
+    const years = parseInt(document.getElementById('years-select')?.value || '3');
+    loadAllData(years);
+  });
+
+  // Tab切换
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+      btn.classList.add('active');
+      const cat = btn.dataset.cat;
+      const sec = document.getElementById(`sec_${cat}`);
+      if (sec) sec.style.display = 'block';
+    });
+  });
+
+  // 默认显示第一个tab
+  const firstBtn = document.querySelector('.tab-btn');
+  if (firstBtn) firstBtn.click();
+
+  // 每分钟自动刷新
+  setInterval(() => {
+    const y = parseInt(document.getElementById('years-select')?.value || '3');
+    loadAllData(y);
+  }, 60000);
+});
+</script>
+</body>
+</html>
