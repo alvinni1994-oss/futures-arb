@@ -173,7 +173,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
   .two-col{grid-template-columns:1fr}
   .metrics-grid{grid-template-columns:repeat(2,1fr)}
 }
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
 .sbx{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow)}
 .sbx h4{font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px;font-weight:700;padding-bottom:5px;border-bottom:1px solid var(--bg4)}
 
@@ -198,7 +198,7 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 .warn-badge{display:inline-block;background:var(--red-bg);color:var(--red);padding:2px 8px;border-radius:4px;font-size:.65rem;font-weight:600;border:1px solid var(--red-bd)}
 
 @media(max-width:768px){
-  .stats-row{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
   .metrics-grid{grid-template-columns:repeat(3,1fr)}
   .dc-prices-row{gap:12px}
   .ct{padding:10px 12px}
@@ -300,16 +300,13 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
     </div>
   </div>
 
-  <!-- 指标卡 -->
-  <div class="metrics-grid" id="mcs"></div>
-
-  <!-- 相关性 -->
+  <!-- ② 相关性 -->
   <div class="crr-bar" id="crr"></div>
 
-  <!-- 策略指引（折叠） -->
+  <!-- ③ 报价公式 + 下单公式（折叠） -->
   <div class="strat-toggle">
     <div class="strat-hdr" onclick="toggleStrat()">
-      <span>📋 策略指引 · 报价公式 · 信号阈值 · 止盈止损参考 · 风险提示</span>
+      <span>📐 报价公式 · 下单逻辑 · 风险提示</span>
       <span id="strat-arrow">▲</span>
     </div>
     <div class="strat-body open" id="strat-body">
@@ -328,16 +325,6 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
           <div class="formula">价差 &lt; <span class="st-openlo">-800</span>（NR偏贵）<br>→ 买 2手BR + 卖 1手NR</div>
           <div class="formula">止盈：价差回归均值 ± <span class="st-tp">500</span>元<br>止损：价差超过 ± <span class="st-sl">4500</span>元</div>
           <div class="note-tip" style="color:var(--red);font-weight:600">⚠️ 配对比例：2手BR(5t×2) : 1手NR(10t×1)，名义吨数对等</div>
-        </div>
-        <div class="strat-block">
-          <h4>📊 阈值建议（<span id="st-yrs">3</span>年历史）</h4>
-          <div class="sr"><span class="sk">历史均值</span><span class="sv" id="st-mean2">+369 元</span></div>
-          <div class="sr"><span class="sk">P95 高位</span><span class="sv c-red" id="st-p95">+2565 元</span></div>
-          <div class="sr"><span class="sk">P5 低位</span><span class="sv c-green" id="st-p5">-1716 元</span></div>
-          <div class="sr"><span class="sk">1σ 标准差</span><span class="sv" id="st-std">1482 元</span></div>
-          <div class="sr"><span class="sk">开仓弱信号</span><span class="sv" id="st-open">差值 >+1500 或 &lt;-800</span></div>
-          <div class="sr"><span class="sk">强信号</span><span class="sv c-red" id="st-strong">差值 >+2500 或 &lt;-1500</span></div>
-          <div class="sr"><span class="sk">止盈目标</span><span class="sv c-green" id="st-tp2">均值 ±500 元</span></div>
         </div>
         <div class="strat-block">
           <h4>⚠️ 风险提示（必读）</h4>
@@ -488,8 +475,18 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
   </div>
   <div class="chart-box"><div class="chart-title" id="mct">BR−NR 价差走势（元/吨）· 3年 · 布林带</div><div id="mc"></div></div>
   <div class="chart-box"><div class="chart-title">BR / NR 价格走势（同轴）</div><div id="pc"></div></div>
-  <div class="stats-row" id="sg"></div>
   <div class="chart-box"><div class="chart-title">历史分布直方图（红色竖线 = 当前位置）</div><div id="hc"></div></div>
+
+  <!-- ⑥ 趋势图解读 -->
+  <div class="strat-toggle" style="margin-top:4px">
+    <div class="strat-hdr" onclick="toggleEl('sg-body','sg-arrow')">
+      <span>📊 趋势图解读</span>
+      <span id="sg-arrow">▲</span>
+    </div>
+    <div class="strat-body open" id="sg-body">
+      <div class="stats-row" id="sg" style="margin-bottom:0"></div>
+    </div>
+  </div>
 
   <div class="ft">
     数据：新浪期货实时行情（<b id="ft-sym">BR0/NR0</b>，自动跟随主力合约）·
@@ -864,6 +861,10 @@ function toggleStrat(){
   const b=document.getElementById("strat-body"),a=document.getElementById("strat-arrow");
   b.classList.toggle("open"); a.textContent=b.classList.contains("open")?"▲":"▼";
 }
+function toggleEl(bodyId, arrowId){
+  const b=document.getElementById(bodyId),a=document.getElementById(arrowId);
+  b.classList.toggle("open"); a.textContent=b.classList.contains("open")?"▲":"▼";
+}
 function togglePanel(bodyId, arrowId){
   const b=document.getElementById(bodyId), a=document.getElementById(arrowId);
   const open=b.style.display==="none";
@@ -1053,17 +1054,7 @@ function render(){
   renderDecision(d);
   updateStratText();
 
-  const dzc=Math.abs(ds.z)>=T.strong?"c-red":Math.abs(ds.z)>=T.open?"c-orange":"c-green";
-  document.getElementById("mcs").innerHTML=`
-    <div class="mc accent"><div class="mc-label">BR−NR 价差（主）</div><div class="mc-val ${ds.z>0?"c-red":"c-blue"}">${(ds.cur>=0?"+":"")+ds.cur.toFixed(0)}</div><div class="mc-sub c-gray">元/吨</div></div>
-    <div class="mc accent"><div class="mc-label">历史分位</div><div class="mc-val ${ds.pct>80?"c-red":ds.pct<20?"c-blue":""}">P${ds.pct.toFixed(1)}%</div><div class="mc-sub c-gray">${yrs}年区间</div></div>
-    <div class="mc accent"><div class="mc-label">价差 Z-Score</div><div class="mc-val ${dzc}">${(ds.z>=0?"+":"")+ds.z.toFixed(2)}σ</div><div class="mc-sub c-gray">${ds.z>0?"BR偏贵":"NR偏贵"}</div></div>
-    <div class="mc"><div class="mc-label">BR(${d.rt_sym_a||"BR0"})</div><div class="mc-val c-orange">${br.toLocaleString()}</div><div class="mc-sub ${d.realtime?"c-green":"c-gray"}">${d.realtime?"🟢实时":"昨收"} · 5t/手</div></div>
-    <div class="mc"><div class="mc-label">NR(${d.rt_sym_b||"NR0"})</div><div class="mc-val" style="color:#9333ea">${nr.toLocaleString()}</div><div class="mc-sub ${d.realtime?"c-green":"c-gray"}">${d.realtime?"🟢实时":"昨收"} · 10t/手</div></div>
-    <div class="mc"><div class="mc-label">价差均值</div><div class="mc-val">${(ds.mean>=0?"+":"")+ds.mean.toFixed(0)}</div><div class="mc-sub c-gray">元/吨</div></div>
-    <div class="mc"><div class="mc-label">1σ 标准差</div><div class="mc-val">${ds.std.toFixed(0)}</div><div class="mc-sub c-gray">元/吨</div></div>
-    <div class="mc accent-blue"><div class="mc-label">比值（辅）</div><div class="mc-val c-blue">${rs.cur.toFixed(4)}</div><div class="mc-sub c-gray">Z=${(rs.z>=0?"+":"")+rs.z.toFixed(2)}</div></div>
-    <div class="mc"><div class="mc-label">样本数</div><div class="mc-val" style="font-size:.95rem">${d.count}</div><div class="mc-sub c-gray">${yrs}年日线</div></div>`;
+  // 指标卡已整合到决策卡和趋势图解读中，此处不再单独渲染
 
   const ci=Object.entries(d.corr).map(([k,v])=>{
     const c=v>0.6?"var(--green)":v>0.3?"var(--yellow)":"var(--red)";
@@ -1152,14 +1143,13 @@ function render(){
   const av=(Math.sqrt(rets.reduce((a,b)=>a+(b-rm)**2,0)/rets.length)*Math.sqrt(252)*100).toFixed(1);
 
   document.getElementById("sg").innerHTML=`
-    <div class="sbx"><h4>价差分布（主指标）</h4>
-      ${[["P5（历史低位）",ds.p5.toFixed(0)+"元"],["P25",ds.p5.toFixed(0)+"~均值"],["均值","+"+(ds.mean|0)+"元"],["P75","均值~P95"],["P95（历史高位）","+"+(ds.p95|0)+"元"],["当前","+"+(ds.cur|0)+"元 / P"+ds.pct.toFixed(1)+"%"]].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join("")}
+    <div class="sbx"><h4>📊 价差分布（${yrs}年统计）</h4>
+      ${[["P5（历史低位）",ds.p5.toFixed(0)+"元"],["均值","+"+(ds.mean|0)+"元"],["P95（历史高位）","+"+(ds.p95|0)+"元"],["1σ标准差",ds.std.toFixed(0)+"元"],["当前分位","P"+ds.pct.toFixed(1)+"%"],["当前价差",(ds.cur>=0?"+":"")+ds.cur.toFixed(0)+"元"]].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join("")}
     </div>
-    <div class="sbx"><h4>各周期相关性</h4>
-      ${Object.entries(d.corr).map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv" style="color:${v>0.6?"var(--green)":v>0.3?"var(--yellow)":"var(--red)"}">${v.toFixed(4)}</span></div>`).join("")}
-    </div>
-    <div class="sbx"><h4>当前信号概览</h4>
-      ${[["BR价格",br.toLocaleString()+" (5t/手)"],["NR价格",nr.toLocaleString()+" (10t/手)"],["BR−NR价差",(ds.cur>=0?"+":"")+ds.cur.toFixed(0)+"元/吨"],["价差Z-Score",(ds.z>=0?"+":"")+ds.z.toFixed(3)+"σ"],["比值Z（辅）",(rs.z>=0?"+":"")+rs.z.toFixed(3)+"σ"],["年化波动率",av+"%"]].map(([k,v])=>`<div class="sr"><span class="sk">${k}</span><span class="sv">${v}</span></div>`).join("")}
+    <div class="sbx"><h4>📈 年化波动率</h4>
+      <div class="sr"><span class="sk">年化波动率</span><span class="sv">${av}%</span></div>
+      <div class="sr"><span class="sk">比值Z-Score（辅）</span><span class="sv">${(rs.z>=0?"+":"")+rs.z.toFixed(3)}σ</span></div>
+      <div class="note-tip">波动率越高代表价差近期波动幅度越大，建议相应调整仓位。</div>
     </div>`;
 }
 
