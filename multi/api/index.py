@@ -22,22 +22,14 @@ from typing import Any, Dict, List, Optional
 import akshare as ak
 import numpy as np
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
 from scipy import stats
 
-app = FastAPI(title="多策略期货套利监控", version="1.0.0")
+from fastapi import APIRouter
+router = APIRouter()
 
-# CORS配置
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # ============================================================
 # 缓存系统
@@ -517,7 +509,7 @@ def fetch_calendar_spread(symbol: str, years: int = 2) -> Dict:
 # API 路由
 # ============================================================
 
-@app.get("/api/strategies")
+@router.get("/api/strategies")
 def get_strategies():
     """返回所有策略列表（不含历史数据）"""
     output = []
@@ -538,7 +530,7 @@ def get_strategies():
     return {"strategies": output}
 
 
-@app.get("/api/spread")
+@router.get("/api/spread")
 def get_spread(
     id: str = Query(..., description="策略ID"),
     years: int = Query(3, ge=1, le=10, description="历史年数"),
@@ -610,7 +602,7 @@ def get_spread(
     }
 
 
-@app.get("/api/realtime")
+@router.get("/api/realtime")
 def get_realtime():
     """
     返回所有品种当前实时价格（最新主力合约收盘价）。
@@ -645,7 +637,7 @@ def get_realtime():
     }
 
 
-@app.get("/api/calendar_spread")
+@router.get("/api/calendar_spread")
 def get_calendar_spread(
     symbol: str = Query(..., description="品种代码，如PP/BU/FU"),
     years: int = Query(2, ge=1, le=5, description="历史参考年数"),
@@ -664,17 +656,7 @@ def get_calendar_spread(
     return data
 
 
-@app.get("/api/health")
+@router.get("/api/health")
 def health_check():
     return {"status": "ok", "time": datetime.now().isoformat()}
 
-
-# ============================================================
-# 静态文件服务（前端）
-# ============================================================
-
-import os
-
-_public_dir = os.path.join(os.path.dirname(__file__), "..", "public")
-if os.path.isdir(_public_dir):
-    app.mount("/", StaticFiles(directory=_public_dir, html=True), name="static")
