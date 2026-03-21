@@ -245,11 +245,11 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
           <div class="dc-price-sub"><span id="hdr-nr-rt"></span></div>
         </div>
         <div class="dc-price-div"></div>
-        <div class="dc-price-item" style="flex:1;text-align:center">
+        <div class="dc-price-item" style="flex:1;text-align:center;min-width:120px">
           <div class="dc-price-label">BR − NR 价差（元/吨）</div>
-          <div style="display:flex;align-items:center;justify-content:center;gap:5px">
-            <div class="dc-diff-val c-orange" id="hdr-diff">—</div>
-            <span id="hdr-rt-badge"></span>
+          <div style="display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:nowrap">
+            <div class="dc-diff-val c-orange" id="hdr-diff" style="white-space:nowrap">—</div>
+            <span id="hdr-rt-badge" style="flex-shrink:0"></span>
           </div>
           <div class="dc-price-sub" id="diff-vs-mean"></div>
         </div>
