@@ -415,3 +415,29 @@ def save_settings(req: SettingsReq):
     data[req.key] = {"thresh": req.thresh, "alert": req.alert, "ts": time.time()}
     _save_settings_file(data)
     return {"ok": True}
+
+
+@app.get("/api/debug")
+def debug_akshare():
+    """诊断接口：测试akshare各接口可达性"""
+    import traceback, time as _t
+    results = {}
+    
+    # 测试历史数据
+    try:
+        t0 = _t.time()
+        import akshare as ak
+        df = ak.futures_main_sina(symbol="BR0")
+        results["history_BR"] = {"ok": True, "rows": len(df), "ms": round((_t.time()-t0)*1000)}
+    except Exception as e:
+        results["history_BR"] = {"ok": False, "error": str(e), "trace": traceback.format_exc()[-300:]}
+    
+    # 测试实时数据
+    try:
+        t0 = _t.time()
+        df2 = ak.futures_zh_realtime(symbol="丁二烯橡胶")
+        results["realtime_BR"] = {"ok": True, "rows": len(df2), "ms": round((_t.time()-t0)*1000)}
+    except Exception as e:
+        results["realtime_BR"] = {"ok": False, "error": str(e)}
+    
+    return results
