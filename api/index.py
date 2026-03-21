@@ -2,7 +2,7 @@
 期货套利分析 API
 支持 Vercel Python Serverless Functions
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import pandas as pd
@@ -22,6 +22,124 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ===== 策略配置表 =====
+STRATEGIES = [
+    # ── 橡胶套利 ──
+    {
+        "id": "br_nr", "name": "BR/NR 橡胶套利", "category": "rubber",
+        "unit": "元/吨", "legs": ["BR", "NR"],
+        "formula": "BR - NR",
+        "ratio": [2, 1],
+        "lot_sizes": [5, 10],
+        "open_hi": 1500, "strong_hi": 2500,
+        "open_lo": -800, "strong_lo": -1500,
+        "tp": 500, "sl": 4500,
+        "note": "2手BR(5t×2=10t) : 1手NR(10t×1=10t)"
+    },
+    # ── 股指期货 ──
+    {
+        "id": "im_ic", "name": "IM-IC 价差", "category": "equity_index",
+        "unit": "点", "legs": ["IM", "IC"],
+        "formula": "IM - IC",
+        "ratio": [1, 1],
+        "lot_sizes": [1, 1],
+        "open_hi": 500, "strong_hi": 800,
+        "open_lo": -200, "strong_lo": -400,
+        "tp": 150, "sl": 1200,
+        "note": "1手IM : 1手IC"
+    },
+    # ── 加工费套利 ──
+    {
+        "id": "ta_px", "name": "TA加工费", "category": "processing",
+        "unit": "元/吨", "legs": ["TA", "PX"],
+        "formula": "TA - PX * 0.655",
+        "ratio": [3, 2],
+        "lot_sizes": [5, 5],
+        "open_hi": 200, "strong_hi": 400,
+        "open_lo": -100, "strong_lo": -200,
+        "tp": 100, "sl": 600,
+        "note": "多3TA空2PX；加工费=TA−PX×0.655"
+    },
+    {
+        "id": "pr_bottle", "name": "瓶片加工费", "category": "processing",
+        "unit": "元/吨", "legs": ["PR", "TA", "EG"],
+        "formula": "PR - TA * 0.855 - EG * 0.335",
+        "ratio": [2, 5, 1],
+        "lot_sizes": [5, 5, 10],
+        "open_hi": 1200, "strong_hi": 1500,
+        "open_lo": 500, "strong_lo": 300,
+        "tp": 200, "sl": 800,
+        "note": "空2PR多5TA多1EG；正常区间800-1200元/吨"
+    },
+    {
+        "id": "pr_pf", "name": "PR-PF 相对加工费", "category": "processing",
+        "unit": "元/吨", "legs": ["PR", "PF", "TA", "EG"],
+        "formula": "(PR - TA * 0.855 - EG * 0.332) - (PF - TA * 0.855 - EG * 0.335)",
+        "ratio": [1, 3, 0, 0],
+        "lot_sizes": [5, 5, 5, 10],
+        "open_hi": 1500, "strong_hi": 2000,
+        "open_lo": 500, "strong_lo": 300,
+        "tp": 300, "sl": 2500,
+        "note": "空1PR多3PF；正常区间800-1200，>1500空PR多PF，<500多PR空PF"
+    },
+    # ── 跨品种套利 ──
+    {
+        "id": "l_pp", "name": "L-PP 跨品种", "category": "cross_product",
+        "unit": "元/吨", "legs": ["L", "PP"],
+        "formula": "L - PP",
+        "ratio": [1, 1],
+        "lot_sizes": [5, 5],
+        "open_hi": 300, "strong_hi": 500,
+        "open_lo": -300, "strong_lo": -500,
+        "tp": 100, "sl": 700,
+        "note": "1手L : 1手PP"
+    },
+    {
+        "id": "rm_oi", "name": "菜粕-菜油", "category": "cross_product",
+        "unit": "元（加权）", "legs": ["RM", "OI"],
+        "formula": "RM * 4 - OI",
+        "ratio": [4, 1],
+        "lot_sizes": [10, 10],
+        "open_hi": 500, "strong_hi": 800,
+        "open_lo": -200, "strong_lo": -400,
+        "tp": 150, "sl": 1000,
+        "note": "4手RM空1手OI；加权价差=RM×4−OI"
+    },
+    {
+        "id": "m_rm", "name": "豆粕-菜粕", "category": "cross_product",
+        "unit": "元/吨", "legs": ["M", "RM"],
+        "formula": "M - RM",
+        "ratio": [1, 1],
+        "lot_sizes": [10, 10],
+        "open_hi": 200, "strong_hi": 350,
+        "open_lo": -200, "strong_lo": -350,
+        "tp": 80, "sl": 500,
+        "note": "1手M : 1手RM"
+    },
+    {
+        "id": "rm_c", "name": "菜粕-玉米", "category": "cross_product",
+        "unit": "元/吨", "legs": ["RM", "C"],
+        "formula": "RM - C",
+        "ratio": [1, 1],
+        "lot_sizes": [10, 5],
+        "open_hi": 300, "strong_hi": 500,
+        "open_lo": 100, "strong_lo": -50,
+        "tp": 100, "sl": 700,
+        "note": "1手RM : 1手C"
+    },
+    {
+        "id": "lu_fu", "name": "LU-FU 跨品种", "category": "cross_product",
+        "unit": "元/吨", "legs": ["LU", "FU"],
+        "formula": "LU - FU",
+        "ratio": [1, 1],
+        "lot_sizes": [10, 10],
+        "open_hi": 300, "strong_hi": 500,
+        "open_lo": -300, "strong_lo": -500,
+        "tp": 100, "sl": 700,
+        "note": "1手LU : 1手FU"
+    },
+]
+
 FUTURES_DICT = {
     "BR": "BR0", "RU": "RU0", "NR": "NR0",
     "BU": "BU0", "FU": "FU0", "SC": "SC0",
@@ -34,6 +152,13 @@ FUTURES_DICT = {
     "M":  "M0",  "Y":  "Y0",  "P":  "P0",
     "OI": "OI0", "C":  "C0",  "CF": "CF0",
     "SR": "SR0", "RM": "RM0",
+    # 补充缺失品种
+    "IM": "IM0",   # 中证1000
+    "IC": "IC0",   # 中证500
+    "PX": "PX0",   # PX
+    "PR": "PR0",   # 涤纶短纤（郑商所）
+    "PF": "SF0",   # 短纤（akshare代码SF0）
+    "LU": "LU0",   # 低硫燃料油
 }
 
 RECOMMENDED_PAIRS = [
@@ -91,6 +216,14 @@ REALTIME_NAME_MAP = {
     "CF": "棉花",
     "SR": "白糖",
     "RM": "菜粕",
+    "IM": "中证1000",
+    "IC": "中证500",
+    "PX": "对二甲苯",
+    "PR": "涤纶短纤",
+    "PF": "短纤",
+    "LU": "低硫燃料油",
+    "TA": "PTA",
+    "C":  "玉米",
 }
 
 def get_realtime_price(symbol: str) -> dict | None:
@@ -155,6 +288,129 @@ def load_data(symbol: str, years: int = 3) -> pd.DataFrame:
 
     _cache[cache_key] = (df, now)
     return df
+
+
+def compute_spread(strategy_id: str, years: int = 3) -> dict:
+    """通用多腿价差计算"""
+    strat = next((s for s in STRATEGIES if s["id"] == strategy_id), None)
+    if not strat:
+        raise ValueError(f"未知策略: {strategy_id}")
+
+    legs = strat["legs"]
+    formula = strat["formula"]
+
+    # 加载各腿数据
+    dfs = {}
+    for sym in legs:
+        ak_symbol = FUTURES_DICT.get(sym)
+        if not ak_symbol:
+            raise ValueError(f"未知品种代码: {sym}")
+        df = load_data(ak_symbol, years)
+        dfs[sym] = df[["date", "close"]].rename(columns={"close": sym})
+
+    # 合并（inner join on date）
+    merged = dfs[legs[0]]
+    for sym in legs[1:]:
+        merged = pd.merge(merged, dfs[sym], on="date", how="inner")
+    merged = merged.sort_values("date").reset_index(drop=True)
+
+    if len(merged) < 20:
+        raise ValueError("数据不足，无法计算统计信息")
+
+    # 尝试更新实时行情
+    realtime_updated = False
+    rt_data = {}
+    for sym in legs:
+        rt = get_realtime_price(sym)
+        if rt and rt["price"] > 0:
+            rt_data[sym] = rt
+    if len(rt_data) == len(legs):
+        today = pd.Timestamp.now().normalize()
+        last_date = merged["date"].iloc[-1]
+        new_vals = {"date": today}
+        for sym in legs:
+            new_vals[sym] = rt_data[sym]["price"]
+        if last_date < today:
+            merged = pd.concat([merged, pd.DataFrame([new_vals])], ignore_index=True)
+        else:
+            for sym in legs:
+                merged.loc[merged.index[-1], sym] = new_vals[sym]
+        realtime_updated = True
+
+    # 计算价差：先尝试 pd.eval，失败则用手动计算
+    try:
+        spread = merged.eval(formula)
+    except Exception:
+        # 手动计算兜底
+        local_vars = {sym: merged[sym] for sym in legs}
+        spread = eval(formula, {"__builtins__": {}}, local_vars)
+
+    spread = pd.Series(spread.values if hasattr(spread, "values") else spread, name="spread")
+
+    mean_d = float(spread.mean())
+    std_d = float(spread.std())
+    cur_d = float(spread.iloc[-1])
+    z_d = (cur_d - mean_d) / std_d if std_d > 0 else 0
+    pct_d = float(stats.percentileofscore(spread.dropna(), cur_d))
+
+    boll_mid = spread.rolling(20).mean()
+    boll_up = boll_mid + 2 * spread.rolling(20).std()
+    boll_dn = boll_mid - 2 * spread.rolling(20).std()
+
+    # 相关性（用第1、2腿）
+    sym_a, sym_b = legs[0], legs[1]
+    corr = {}
+    now_dt = merged["date"].max()
+    for label, days in [("1M", 21), ("3M", 63), ("1Y", 252), ("3Y", 756)]:
+        sub = merged[merged["date"] >= now_dt - pd.Timedelta(days=days)]
+        if len(sub) >= 5:
+            corr[label] = round(float(sub[sym_a].corr(sub[sym_b])), 3)
+
+    def safe(lst):
+        return [round(float(x), 2) if pd.notna(x) else None for x in lst]
+
+    # 各腿最新价
+    leg_prices = {sym: round(float(merged[sym].iloc[-1]), 2) for sym in legs}
+
+    rt_syms = {}
+    for sym in legs:
+        if sym in rt_data:
+            rt_syms[sym] = rt_data[sym]["symbol"]
+
+    return {
+        "id": strategy_id,
+        "name": strat["name"],
+        "category": strat["category"],
+        "unit": strat["unit"],
+        "formula": formula,
+        "legs": legs,
+        "leg_prices": leg_prices,
+        "rt_syms": rt_syms,
+        "dates": merged["date"].dt.strftime("%Y-%m-%d").tolist(),
+        "spread": safe(spread),
+        "boll_mid": safe(boll_mid),
+        "boll_up": safe(boll_up),
+        "boll_dn": safe(boll_dn),
+        # 各腿价格数据（用于副图）
+        "legs_data": {sym: safe(merged[sym]) for sym in legs},
+        "corr": corr,
+        "stats": {
+            "cur": round(cur_d, 2), "mean": round(mean_d, 2),
+            "std": round(std_d, 2), "z": round(z_d, 3),
+            "pct": round(pct_d, 1),
+            "p5": round(float(np.percentile(spread.dropna(), 5)), 2),
+            "p95": round(float(np.percentile(spread.dropna(), 95)), 2),
+        },
+        "thresholds": {
+            "open_hi": strat["open_hi"], "strong_hi": strat["strong_hi"],
+            "open_lo": strat["open_lo"], "strong_lo": strat["strong_lo"],
+            "tp": strat["tp"], "sl": strat["sl"],
+        },
+        "note": strat["note"],
+        "last_date": merged["date"].iloc[-1].strftime("%Y-%m-%d"),
+        "count": len(merged),
+        "realtime": realtime_updated,
+    }
 
 
 def compute_pair(sym_a: str, sym_b: str, years: int = 3) -> dict:
@@ -257,6 +513,23 @@ def compute_pair(sym_a: str, sym_b: str, years: int = 3) -> dict:
 @app.get("/api")
 def root():
     return {"status": "ok", "message": "期货套利分析 API"}
+
+
+@app.get("/api/strategies")
+def get_strategies():
+    """返回所有策略列表"""
+    return [{"id": s["id"], "name": s["name"], "category": s["category"]} for s in STRATEGIES]
+
+
+@app.get("/api/spread")
+def get_spread(id: str, years: int = 3):
+    """通用多腿价差计算接口"""
+    try:
+        return compute_spread(id, years)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/symbols")
@@ -372,9 +645,6 @@ async def send_email_api(req: EmailRequest):
         return JSONResponse({"ok": False, "error": f"Resend API 错误: {err_body}"}, status_code=500)
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
-
-
-
 
 
 # ===== 跨设备设置同步 =====
