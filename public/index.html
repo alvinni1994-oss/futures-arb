@@ -1111,7 +1111,7 @@ async function saveThresh() {
   try {
     const resp = await fetch(`${API}/api/settings`, {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ key: `thresh_${currentId}`, data: T })
+      body: JSON.stringify({ key: `thresh_${currentId}`, thresh: T })
     });
     const ok = resp.ok;
     if(btn) { btn.className="save-btn saved"; btn.textContent=ok?"✅ 已保存":"✅ 已保存（本地）"; }
@@ -1417,8 +1417,10 @@ async function loadSettings() {
       const r = await fetch(`${API}/api/settings?key=thresh_${id}`);
       if(r.ok) {
         const saved = await r.json();
-        if(saved && typeof saved === 'object' && saved.openHi != null) {
-          Object.assign(STRATEGY_CONFIG[id], saved);
+        // 兼容新格式 {thresh:{...}} 和旧格式 {openHi:...}
+        const t = (saved && saved.thresh) ? saved.thresh : saved;
+        if(t && typeof t === 'object' && t.openHi != null) {
+          Object.assign(STRATEGY_CONFIG[id], t);
         }
       }
     }
