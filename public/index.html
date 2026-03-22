@@ -1244,13 +1244,20 @@ const AC = { get webhook(){ return webhookKeys.some(w=>w.enabled&&w.key); }, web
 
 // ── 推送防重复状态 ──
 // key: strategyId, value: { signal, lastPushTime, todayCount }
-const _alertState = {};
+// 持久化到 localStorage，防止页面刷新后频控失效
+const _ALERT_STATE_LS = "arb_alert_state_v1";
+const _alertState = (() => {
+  try { return JSON.parse(localStorage.getItem(_ALERT_STATE_LS) || "{}"); } catch(e) { return {}; }
+})();
+function _saveAlertState() {
+  try { localStorage.setItem(_ALERT_STATE_LS, JSON.stringify(_alertState)); } catch(e) {}
+}
 
 function _getAlertState(id) {
   if (!_alertState[id]) _alertState[id] = { signal: null, lastPushTime: 0, todayCount: 0, todayDate: "" };
   const s = _alertState[id];
   const today = new Date().toLocaleDateString("zh-CN");
-  if (s.todayDate !== today) { s.todayDate = today; s.todayCount = 0; } // 每日零点重置
+  if (s.todayDate !== today) { s.todayDate = today; s.todayCount = 0; _saveAlertState(); } // 每日零点重置
   return s;
 }
 
@@ -1330,10 +1337,11 @@ async function checkAndPushAlert(id, d, signal) {
   // 今日次数超限
   if (state.todayCount >= maxDaily) return;
 
-  // 更新状态
+  // 更新状态（持久化到 localStorage，刷新页面后频控依然有效）
   state.signal = signal;
   state.lastPushTime = now;
   state.todayCount++;
+  _saveAlertState();
 
   const name = d.name || id;
   const signalLabel = signal === 'strong_hi' ? '🔥 强信号偏高' : signal === 'weak_hi' ? '⚠️ 弱信号偏高' :
