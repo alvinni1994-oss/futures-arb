@@ -156,8 +156,8 @@ FUTURES_DICT = {
     "IM": "IM0",   # 中证1000
     "IC": "IC0",   # 中证500
     "PX": "PX0",   # PX
-    "PR": "PR0",   # 涤纶短纤（郑商所）
-    "PF": "SF0",   # 短纤（akshare代码SF0）
+    "PR": "PR0",   # 瓶片（瓶级聚酯切片，郑商所）
+    "PF": "SF0",   # 短纤（akshare代码SF0，郑商所）
     "LU": "LU0",   # 低硫燃料油
 }
 
