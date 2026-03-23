@@ -7,9 +7,34 @@
 """
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-import os, uvicorn
+import os, uvicorn, threading, time, urllib.request
 
 from api.index import app
+
+# ── 自 ping：防止 Render 免费套餐休眠 ──────────────────────────────
+def _self_ping():
+    """每14分钟 ping 自己，防止 Render 冷启动。"""
+    time.sleep(30)  # 等服务完全启动
+    service_url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+    if not service_url:
+        service_name = os.environ.get("RENDER_SERVICE_NAME", "")
+        if service_name:
+            service_url = f"https://{service_name}.onrender.com"
+        else:
+            service_url = "https://futures-arb.onrender.com"
+    ping_url = f"{service_url}/api"
+    while True:
+        try:
+            req = urllib.request.Request(ping_url, headers={"User-Agent": "self-ping/1.0"})
+            with urllib.request.urlopen(req, timeout=10):
+                pass
+        except Exception:
+            pass
+        time.sleep(14 * 60)  # 14分钟 ping 一次
+
+# 仅在 Render 环境启动自 ping 后台线程
+if os.environ.get("RENDER") or os.environ.get("SELF_PING", "").lower() == "true":
+    threading.Thread(target=_self_ping, daemon=True, name="self-ping").start()
 
 # ── 多策略路由 ──────────────────────────────────
 from multi.api.index import router as multi_router
